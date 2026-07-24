@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using movaa_project_back.Application.DTOs.Auth;
 using movaa_project_back.Application.Services;
+using movaa_project_back.Data;
 
 namespace movaa_project_back.Presentation.Endpoints;
 
@@ -83,6 +85,25 @@ public static class AuthEndpoints
         })
         .WithSummary("Select user role")
         .WithDescription("Updates the role of a user.");
+
+        authGroup.MapDelete("/users/cleanup", async (AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var count = await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM \"Users\";", ct);
+            return Results.Ok(new { message = "All users cleared successfully.", deletedCount = count });
+        })
+        .WithSummary("Clear all users (Cleanup Endpoint)")
+        .WithDescription("Deletes all registered users from the database.");
+
+        authGroup.MapDelete("/users/phone/{phone}", async (string phone, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var raw = phone.Trim();
+            var count = await dbContext.Database.ExecuteSqlRawAsync(
+                "DELETE FROM \"Users\" WHERE \"Phone\" = {0} OR \"Phone\" = {1} OR \"Phone\" = {2};",
+                raw, $"+374{raw}", $"+374 {raw}");
+            return Results.Ok(new { message = $"Users matching phone '{phone}' deleted successfully.", deletedCount = count });
+        })
+        .WithSummary("Delete specific user by phone")
+        .WithDescription("Deletes a specific user from the database matching the provided phone number.");
 
         var usersGroup = app.MapGroup("/api/users").WithTags("Users");
         usersGroup.MapPatch("/onboarding/complete", [Authorize] async (ClaimsPrincipal principal, [FromQuery] Guid? userId, IAuthService authService, CancellationToken ct) =>

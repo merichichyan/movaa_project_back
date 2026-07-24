@@ -28,6 +28,22 @@ public class AuthService : IAuthService
             throw new ArgumentException("Password is required.");
         }
 
+        var pass = request.Password.Trim();
+        if (pass.Length < 6 || pass.Length > 20)
+        {
+            throw new ArgumentException("Password must be between 6 and 20 characters.");
+        }
+
+        var hasUpper = System.Text.RegularExpressions.Regex.IsMatch(pass, @"[A-Z]");
+        var hasLower = System.Text.RegularExpressions.Regex.IsMatch(pass, @"[a-z]");
+        var hasDigit = System.Text.RegularExpressions.Regex.IsMatch(pass, @"[0-9]");
+        var hasSymbol = System.Text.RegularExpressions.Regex.IsMatch(pass, @"[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?~`\W]");
+
+        if (!hasUpper || !hasLower || !hasDigit || !hasSymbol)
+        {
+            throw new ArgumentException("Password must contain at least one English uppercase letter, one lowercase letter, one digit, and one symbol.");
+        }
+
         var existingUser = await _userRepository.GetByPhoneAsync(request.Phone, ct);
         if (existingUser != null)
         {
