@@ -120,6 +120,21 @@ using (var scope = app.Services.CreateScope())
             Console.WriteLine("Seeded Admin user 'merichichyan' in Users table successfully.");
         }
 
+        // Ensure Admins table is created in PostgreSQL if it doesn't exist yet
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ""Admins"" (
+                ""Id"" uuid NOT NULL CONSTRAINT ""PK_Admins"" PRIMARY KEY,
+                ""Username"" character varying(50) NOT NULL,
+                ""PasswordHash"" text NOT NULL,
+                ""FullName"" character varying(150) NULL,
+                ""Role"" character varying(50) NOT NULL,
+                ""Email"" character varying(255) NULL,
+                ""CreatedAt"" timestamp with time zone NOT NULL,
+                ""UpdatedAt"" timestamp with time zone NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Admins_Username"" ON ""Admins"" (""Username"");
+        ");
+
         // Seed default Admin in Admins table
         var existingAdminInAdminsTable = dbContext.Admins.FirstOrDefault(a => a.Username == adminPhone);
         if (existingAdminInAdminsTable == null)
