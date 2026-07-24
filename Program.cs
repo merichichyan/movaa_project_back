@@ -103,7 +103,7 @@ using (var scope = app.Services.CreateScope())
     {
         dbContext.Database.EnsureCreated();
 
-        // Seed default Admin account if not existing
+        // Seed default Admin account if not existing in Users table
         var adminPhone = "merichichyan";
         var existingAdmin = dbContext.Users.FirstOrDefault(u => u.Phone == adminPhone);
         if (existingAdmin == null)
@@ -117,7 +117,22 @@ using (var scope = app.Services.CreateScope())
             );
             dbContext.Users.Add(adminUser);
             dbContext.SaveChanges();
-            Console.WriteLine("Seeded Admin user 'merichichyan' successfully.");
+            Console.WriteLine("Seeded Admin user 'merichichyan' in Users table successfully.");
+        }
+
+        // Seed default Admin in Admins table
+        var existingAdminInAdminsTable = dbContext.Admins.FirstOrDefault(a => a.Username == adminPhone);
+        if (existingAdminInAdminsTable == null)
+        {
+            var adminObj = new movaa_project_back.Domain.Entities.Admin(
+                username: adminPhone,
+                passwordHash: BCrypt.Net.BCrypt.HashPassword("Meri.12345"),
+                fullName: "Admin Merichichyan",
+                email: "admin@movaa.com"
+            );
+            dbContext.Admins.Add(adminObj);
+            dbContext.SaveChanges();
+            Console.WriteLine("Seeded Admin user 'merichichyan' in Admins table successfully.");
         }
     }
     catch (Exception ex)

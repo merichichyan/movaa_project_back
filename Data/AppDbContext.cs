@@ -10,12 +10,22 @@ namespace movaa_project_back.Data
         }
 
         public DbSet<User> Users => Set<User>();
+        public DbSet<Admin> Admins => Set<Admin>();
         public DbSet<Salon> Salons => Set<Salon>();
         public DbSet<Specialist> Specialists => Set<Specialist>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Admin>(entity =>
+            {
+                entity.HasKey(a => a.Id);
+                entity.HasIndex(a => a.Username).IsUnique();
+                entity.Property(a => a.Username).IsRequired().HasMaxLength(50);
+                entity.Property(a => a.FullName).HasMaxLength(150);
+                entity.Property(a => a.Email).HasMaxLength(255);
+            });
 
             modelBuilder.Entity<User>(entity =>
             {
