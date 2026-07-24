@@ -1,0 +1,31 @@
+namespace movaa_project_back.Application.DTOs.Auth;
+
+public record LoginRequestDto(
+    string Phone,
+    string Password
+);
+
+public record UserRegisterRequestDto(
+    string Phone,
+    string Password,
+    string? FullName,
+    string? Email,
+    string? Gender,
+    DateTime? Birthday,
+    string? DeviceId
+);
+
+public record SelectRoleRequestDto(
+    Guid UserId,
+    string Role
+);
+
+public record AuthResponseDto(
+    string Token,
+    Guid Id,
+    string Phone,
+    string Email,
+    string FullName,
+    string Role,
+    bool IsOnboardingCompleted
+);

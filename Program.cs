@@ -3,7 +3,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using movaa_project_back.Application.Services;
 using movaa_project_back.Data;
+using movaa_project_back.Data.Repositories;
+using movaa_project_back.Domain.Interfaces;
+using movaa_project_back.Infrastructure.Auth;
+using movaa_project_back.Presentation.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +24,11 @@ else
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseInMemoryDatabase("MovaaDb"));
 }
+
+// Dependency Injection Registrations
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Add Controllers / Endpoints
 builder.Services.AddEndpointsApiExplorer();
@@ -85,19 +95,34 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Configure HTTP request pipeline
-if (app.Environment.IsDevelopment())
+// Ensure Database & Tables Are Created Automatically on Neon PostgreSQL
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Movaa API v1");
-    });
+        dbContext.Database.EnsureCreated();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error ensuring database creation: {ex.Message}");
+    }
 }
+
+// Enable Swagger in Development and Production for Easy API Testing
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Movaa API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Map Auth API Routes
+app.MapAuthEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new
