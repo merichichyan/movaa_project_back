@@ -102,6 +102,23 @@ using (var scope = app.Services.CreateScope())
     try
     {
         dbContext.Database.EnsureCreated();
+
+        // Seed default Admin account if not existing
+        var adminPhone = "merichichyan";
+        var existingAdmin = dbContext.Users.FirstOrDefault(u => u.Phone == adminPhone);
+        if (existingAdmin == null)
+        {
+            var adminUser = new movaa_project_back.Domain.Entities.User(
+                phone: adminPhone,
+                passwordHash: BCrypt.Net.BCrypt.HashPassword("Meri.12345"),
+                fullName: "Admin Merichichyan",
+                role: "admin",
+                email: "admin@movaa.com"
+            );
+            dbContext.Users.Add(adminUser);
+            dbContext.SaveChanges();
+            Console.WriteLine("Seeded Admin user 'merichichyan' successfully.");
+        }
     }
     catch (Exception ex)
     {
@@ -121,8 +138,9 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map Auth API Routes
+// Map API Routes
 app.MapAuthEndpoints();
+app.MapAdminEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new

@@ -1,0 +1,47 @@
+namespace movaa_project_back.Application.DTOs.Admin;
+
+public record ChangePasswordRequestDto(
+    string NewPassword
+);
+
+public record BlockToggleDto(
+    bool IsBlocked
+);
+
+public record CreateSalonDto(
+    string Name,
+    string Address,
+    string Phone,
+    string? Email,
+    string? Description,
+    string? LogoUrl
+);
+
+public record UpdateSalonDto(
+    string Name,
+    string Address,
+    string Phone,
+    string? Email,
+    string? Description,
+    string? LogoUrl
+);
+
+public record CreateSpecialistDto(
+    string Name,
+    string Category,
+    string Phone,
+    string? Email,
+    Guid? SalonId,
+    string? SalonName,
+    string? AvatarUrl
+);
+
+public record UpdateSpecialistDto(
+    string Name,
+    string Category,
+    string Phone,
+    string? Email,
+    Guid? SalonId,
+    string? SalonName,
+    string? AvatarUrl
+);

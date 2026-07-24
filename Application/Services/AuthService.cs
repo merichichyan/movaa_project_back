@@ -96,6 +96,11 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Invalid phone number or password.");
         }
 
+        if (user.IsBlocked)
+        {
+            throw new InvalidOperationException("Account is blocked. Please contact support.");
+        }
+
         var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
         if (!isPasswordValid)
         {

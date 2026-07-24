@@ -12,6 +12,7 @@ public class User
     public DateTime? Birthday { get; private set; }
     public string? DeviceId { get; private set; }
     public string Status { get; private set; } = "Pending";
+    public bool IsBlocked { get; private set; }
     public bool IsOnboardingCompleted { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -65,6 +66,13 @@ public class User
     public void UpdatePasswordHash(string passwordHash)
     {
         PasswordHash = passwordHash;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetBlocked(bool isBlocked)
+    {
+        IsBlocked = isBlocked;
+        Status = isBlocked ? "Blocked" : "Active";
         UpdatedAt = DateTime.UtcNow;
     }
 }
