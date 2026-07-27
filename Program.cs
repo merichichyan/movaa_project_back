@@ -151,7 +151,7 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
-            existingAdminInAdminsTable.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Meri.12345");
+            existingAdminInAdminsTable.UpdatePasswordHash(BCrypt.Net.BCrypt.HashPassword("Meri.12345"));
             dbContext.SaveChanges();
             Console.WriteLine("Updated Admin user 'merichichyan' password hash successfully.");
         }
