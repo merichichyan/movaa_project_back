@@ -41,4 +41,29 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    public string GenerateAdminToken(Admin admin)
+    {
+        var jwtSettings = _configuration.GetSection("Jwt");
+        var secretKey = jwtSettings["Key"] ?? "SuperSecretKeyForMovaaProjectJwtAuthentication2026!";
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, admin.Id.ToString()),
+            new(ClaimTypes.Name, admin.Username),
+            new(ClaimTypes.Email, admin.Email),
+            new(ClaimTypes.Role, admin.Role)
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: jwtSettings["Issuer"] ?? "MovaaApi",
+            audience: jwtSettings["Audience"] ?? "MovaaApp",
+            claims: claims,
+            expires: DateTime.UtcNow.AddDays(30),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
 }

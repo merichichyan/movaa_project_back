@@ -1,5 +1,7 @@
 using BCrypt.Net;
+using Microsoft.EntityFrameworkCore;
 using movaa_project_back.Application.DTOs.Auth;
+using movaa_project_back.Data;
 using movaa_project_back.Domain.Entities;
 using movaa_project_back.Domain.Interfaces;
 
@@ -9,11 +11,13 @@ public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IJwtTokenGenerator _tokenGenerator;
+    private readonly AppDbContext _dbContext;
 
-    public AuthService(IUserRepository userRepository, IJwtTokenGenerator tokenGenerator)
+    public AuthService(IUserRepository userRepository, IJwtTokenGenerator tokenGenerator, AppDbContext dbContext)
     {
         _userRepository = userRepository;
         _tokenGenerator = tokenGenerator;
+        _dbContext = dbContext;
     }
 
     public async Task<AuthResponseDto> RegisterUserAsync(UserRegisterRequestDto request, CancellationToken ct = default)
@@ -117,6 +121,43 @@ public class AuthService : IAuthService
             FullName: user.FullName,
             Role: user.Role,
             IsOnboardingCompleted: user.IsOnboardingCompleted
+        );
+    }
+
+    public async Task<AuthResponseDto> AdminLoginAsync(AdminLoginRequestDto request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Username))
+        {
+            throw new ArgumentException("Username is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            throw new ArgumentException("Password is required.");
+        }
+
+        var admin = await _dbContext.Admins.FirstOrDefaultAsync(a => a.Username == request.Username.Trim(), ct);
+        if (admin == null)
+        {
+            throw new UnauthorizedAccessException("Invalid admin username or password.");
+        }
+
+        var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, admin.PasswordHash);
+        if (!isPasswordValid)
+        {
+            throw new UnauthorizedAccessException("Invalid admin username or password.");
+        }
+
+        var token = _tokenGenerator.GenerateAdminToken(admin);
+
+        return new AuthResponseDto(
+            Token: token,
+            Id: admin.Id,
+            Phone: admin.Username,
+            Email: admin.Email,
+            FullName: admin.FullName,
+            Role: admin.Role,
+            IsOnboardingCompleted: true
         );
     }
 

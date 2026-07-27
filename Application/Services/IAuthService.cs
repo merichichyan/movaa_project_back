@@ -6,6 +6,7 @@ public interface IAuthService
 {
     Task<AuthResponseDto> RegisterUserAsync(UserRegisterRequestDto request, CancellationToken ct = default);
     Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken ct = default);
+    Task<AuthResponseDto> AdminLoginAsync(AdminLoginRequestDto request, CancellationToken ct = default);
     Task SelectRoleAsync(SelectRoleRequestDto request, CancellationToken ct = default);
     Task CompleteOnboardingAsync(Guid userId, CancellationToken ct = default);
 }

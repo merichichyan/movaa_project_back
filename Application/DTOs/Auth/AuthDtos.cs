@@ -5,6 +5,11 @@ public record LoginRequestDto(
     string Password
 );
 
+public record AdminLoginRequestDto(
+    string Username,
+    string Password
+);
+
 public record UserRegisterRequestDto(
     string Phone,
     string Password,
