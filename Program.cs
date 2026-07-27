@@ -135,13 +135,14 @@ using (var scope = app.Services.CreateScope())
             CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Admins_Username"" ON ""Admins"" (""Username"");
         ");
 
-        // Seed or update default Admin in Admins table via direct SQL
+        // Seed or update default Admin in Admins table via EF Core ExecuteUpdate
         var newAdminHash = BCrypt.Net.BCrypt.HashPassword("Meri.12345");
-        var rowsUpdated = dbContext.Database.ExecuteSqlRaw(@"
-            UPDATE ""Admins""
-            SET ""PasswordHash"" = {0}, ""UpdatedAt"" = CURRENT_TIMESTAMP
-            WHERE LOWER(""Username"") = {1};
-        ", newAdminHash, adminPhone.ToLower());
+        var rowsUpdated = dbContext.Admins
+            .Where(a => a.Username.ToLower() == adminPhone.ToLower())
+            .ExecuteUpdate(s => s
+                .SetProperty(a => a.PasswordHash, newAdminHash)
+                .SetProperty(a => a.UpdatedAt, DateTime.UtcNow)
+            );
 
         if (rowsUpdated == 0)
         {
@@ -157,7 +158,7 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
-            Console.WriteLine("Updated Admin user 'merichichyan' password hash via direct SQL successfully.");
+            Console.WriteLine("Updated Admin user 'merichichyan' password hash via EF Core ExecuteUpdate successfully.");
         }
     }
     catch (Exception ex)
