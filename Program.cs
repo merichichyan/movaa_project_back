@@ -120,46 +120,7 @@ using (var scope = app.Services.CreateScope())
             Console.WriteLine("Seeded Admin user 'merichichyan' in Users table successfully.");
         }
 
-        // Ensure Admins table is created in PostgreSQL if it doesn't exist yet
-        dbContext.Database.ExecuteSqlRaw(@"
-            CREATE TABLE IF NOT EXISTS ""Admins"" (
-                ""Id"" uuid NOT NULL CONSTRAINT ""PK_Admins"" PRIMARY KEY,
-                ""Username"" character varying(50) NOT NULL,
-                ""PasswordHash"" text NOT NULL,
-                ""FullName"" character varying(150) NULL,
-                ""Role"" character varying(50) NOT NULL,
-                ""Email"" character varying(255) NULL,
-                ""CreatedAt"" timestamp with time zone NOT NULL,
-                ""UpdatedAt"" timestamp with time zone NULL
-            );
-            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Admins_Username"" ON ""Admins"" (""Username"");
-        ");
 
-        // Seed or update default Admin in Admins table via EF Core ExecuteUpdate
-        var newAdminHash = BCrypt.Net.BCrypt.HashPassword("Meri.12345");
-        var rowsUpdated = dbContext.Admins
-            .Where(a => a.Username.ToLower() == adminPhone.ToLower())
-            .ExecuteUpdate(s => s
-                .SetProperty(a => a.PasswordHash, newAdminHash)
-                .SetProperty(a => a.UpdatedAt, DateTime.UtcNow)
-            );
-
-        if (rowsUpdated == 0)
-        {
-            var adminObj = new movaa_project_back.Domain.Entities.Admin(
-                username: adminPhone,
-                passwordHash: newAdminHash,
-                fullName: "Meri Chichyan",
-                email: "admin@movaa.com"
-            );
-            dbContext.Admins.Add(adminObj);
-            dbContext.SaveChanges();
-            Console.WriteLine("Seeded Admin user 'merichichyan' in Admins table successfully.");
-        }
-        else
-        {
-            Console.WriteLine("Updated Admin user 'merichichyan' password hash via EF Core ExecuteUpdate successfully.");
-        }
     }
     catch (Exception ex)
     {

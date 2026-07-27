@@ -71,24 +71,7 @@ public static class AuthEndpoints
         .WithSummary("Log in user")
         .WithDescription("Authenticates user with phone number and password, returning JWT token.");
 
-        authGroup.MapPost("/admin/login", async ([FromBody] AdminLoginRequestDto request, IAuthService authService, CancellationToken ct) =>
-        {
-            try
-            {
-                var result = await authService.AdminLoginAsync(request, ct);
-                return Results.Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                return Results.BadRequest(new { message = ex.Message });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Results.Json(new { message = ex.Message }, statusCode: 401);
-            }
-        })
-        .WithSummary("Log in admin")
-        .WithDescription("Authenticates admin user from Admins table with username and password, returning JWT token.");
+
 
         authGroup.MapPost("/select-role", async ([FromBody] SelectRoleRequestDto request, IAuthService authService, CancellationToken ct) =>
         {
