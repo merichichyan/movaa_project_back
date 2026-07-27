@@ -136,18 +136,24 @@ using (var scope = app.Services.CreateScope())
         ");
 
         // Seed default Admin in Admins table
-        var existingAdminInAdminsTable = dbContext.Admins.FirstOrDefault(a => a.Username == adminPhone);
+        var existingAdminInAdminsTable = dbContext.Admins.FirstOrDefault(a => a.Username.ToLower() == adminPhone.ToLower());
         if (existingAdminInAdminsTable == null)
         {
             var adminObj = new movaa_project_back.Domain.Entities.Admin(
                 username: adminPhone,
                 passwordHash: BCrypt.Net.BCrypt.HashPassword("Meri.12345"),
-                fullName: "Admin Merichichyan",
+                fullName: "Meri Chichyan",
                 email: "admin@movaa.com"
             );
             dbContext.Admins.Add(adminObj);
             dbContext.SaveChanges();
             Console.WriteLine("Seeded Admin user 'merichichyan' in Admins table successfully.");
+        }
+        else
+        {
+            existingAdminInAdminsTable.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Meri.12345");
+            dbContext.SaveChanges();
+            Console.WriteLine("Updated Admin user 'merichichyan' password hash successfully.");
         }
     }
     catch (Exception ex)

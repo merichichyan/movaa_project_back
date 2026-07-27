@@ -136,13 +136,14 @@ public class AuthService : IAuthService
             throw new ArgumentException("Password is required.");
         }
 
-        var admin = await _dbContext.Admins.FirstOrDefaultAsync(a => a.Username == request.Username.Trim(), ct);
+        var reqUsername = request.Username.Trim().ToLower();
+        var admin = await _dbContext.Admins.FirstOrDefaultAsync(a => a.Username.ToLower() == reqUsername, ct);
         if (admin == null)
         {
             throw new UnauthorizedAccessException("Invalid admin username or password.");
         }
 
-        var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, admin.PasswordHash);
+        var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password.Trim(), admin.PasswordHash);
         if (!isPasswordValid)
         {
             throw new UnauthorizedAccessException("Invalid admin username or password.");
