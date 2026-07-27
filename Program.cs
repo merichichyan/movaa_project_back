@@ -135,13 +135,19 @@ using (var scope = app.Services.CreateScope())
             CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Admins_Username"" ON ""Admins"" (""Username"");
         ");
 
-        // Seed default Admin in Admins table
-        var existingAdminInAdminsTable = dbContext.Admins.FirstOrDefault(a => a.Username.ToLower() == adminPhone.ToLower());
-        if (existingAdminInAdminsTable == null)
+        // Seed or update default Admin in Admins table via direct SQL
+        var newAdminHash = BCrypt.Net.BCrypt.HashPassword("Meri.12345");
+        var rowsUpdated = dbContext.Database.ExecuteSqlRaw(@"
+            UPDATE ""Admins""
+            SET ""PasswordHash"" = {0}, ""UpdatedAt"" = CURRENT_TIMESTAMP
+            WHERE LOWER(""Username"") = {1};
+        ", newAdminHash, adminPhone.ToLower());
+
+        if (rowsUpdated == 0)
         {
             var adminObj = new movaa_project_back.Domain.Entities.Admin(
                 username: adminPhone,
-                passwordHash: BCrypt.Net.BCrypt.HashPassword("Meri.12345"),
+                passwordHash: newAdminHash,
                 fullName: "Meri Chichyan",
                 email: "admin@movaa.com"
             );
@@ -151,9 +157,7 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
-            existingAdminInAdminsTable.UpdatePasswordHash(BCrypt.Net.BCrypt.HashPassword("Meri.12345"));
-            dbContext.SaveChanges();
-            Console.WriteLine("Updated Admin user 'merichichyan' password hash successfully.");
+            Console.WriteLine("Updated Admin user 'merichichyan' password hash via direct SQL successfully.");
         }
     }
     catch (Exception ex)

@@ -82,9 +82,9 @@ public static class AuthEndpoints
             {
                 return Results.BadRequest(new { message = ex.Message });
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
-                return Results.Unauthorized();
+                return Results.Json(new { message = ex.Message }, statusCode: 401);
             }
         })
         .WithSummary("Log in admin")
