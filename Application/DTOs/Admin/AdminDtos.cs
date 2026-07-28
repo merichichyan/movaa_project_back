@@ -14,7 +14,10 @@ public record CreateSalonDto(
     string Phone,
     string? Email,
     string? Description,
-    string? LogoUrl
+    string? LogoUrl,
+    string? OwnerName,
+    string? OwnerPhone,
+    string? TaxId
 );
 
 public record UpdateSalonDto(
@@ -23,7 +26,10 @@ public record UpdateSalonDto(
     string Phone,
     string? Email,
     string? Description,
-    string? LogoUrl
+    string? LogoUrl,
+    string? OwnerName,
+    string? OwnerPhone,
+    string? TaxId
 );
 
 public record CreateSpecialistDto(

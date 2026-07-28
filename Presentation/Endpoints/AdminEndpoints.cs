@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using movaa_project_back.Application.DTOs.Admin;
+using movaa_project_back.Application.Services;
 using movaa_project_back.Data;
 using movaa_project_back.Domain.Entities;
 
@@ -20,17 +21,14 @@ public static class AdminEndpoints
                 .Select(u => new
                 {
                     u.Id,
-                    u.Phone,
                     u.FullName,
+                    u.PhoneNumber,
                     u.Email,
-                    u.Role,
-                    u.Status,
                     u.IsBlocked,
-                    u.IsOnboardingCompleted,
-                    u.CreatedAt,
-                    u.UpdatedAt
+                    u.CreatedAt
                 })
                 .ToListAsync(ct);
+
             return Results.Ok(users);
         })
         .WithSummary("Get all users");
@@ -69,16 +67,20 @@ public static class AdminEndpoints
             var salons = await dbContext.Salons
                 .OrderByDescending(s => s.CreatedAt)
                 .ToListAsync(ct);
+
             return Results.Ok(salons);
         })
-        .WithSummary("Get all salons (Admin view)");
+        .WithSummary("Get all salons");
 
-        adminGroup.MapPost("/salons", async ([FromBody] CreateSalonDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        adminGroup.MapPost("/salons", async ([FromBody] CreateSalonDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Address) || string.IsNullOrWhiteSpace(dto.Phone))
             {
                 return Results.BadRequest(new { message = "Name, address, and phone are required." });
             }
+
+            var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
 
             var salon = new Salon(
                 name: dto.Name,
@@ -86,7 +88,10 @@ public static class AdminEndpoints
                 phone: dto.Phone,
                 email: dto.Email,
                 description: dto.Description,
-                logoUrl: dto.LogoUrl
+                logoUrl: savedLogoUrl,
+                ownerName: dto.OwnerName,
+                ownerPhone: dto.OwnerPhone,
+                taxId: dto.TaxId
             );
 
             dbContext.Salons.Add(salon);
@@ -95,10 +100,13 @@ public static class AdminEndpoints
         })
         .WithSummary("Create a new salon");
 
-        adminGroup.MapPut("/salons/{id:guid}", async (Guid id, [FromBody] UpdateSalonDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        adminGroup.MapPut("/salons/{id:guid}", async (Guid id, [FromBody] UpdateSalonDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
             var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == id, ct);
             if (salon == null) return Results.NotFound(new { message = "Salon not found." });
+
+            var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
 
             salon.Update(
                 name: dto.Name,
@@ -106,7 +114,10 @@ public static class AdminEndpoints
                 phone: dto.Phone,
                 email: dto.Email,
                 description: dto.Description,
-                logoUrl: dto.LogoUrl
+                logoUrl: savedLogoUrl,
+                ownerName: dto.OwnerName,
+                ownerPhone: dto.OwnerPhone,
+                taxId: dto.TaxId
             );
 
             await dbContext.SaveChangesAsync(ct);

@@ -43,6 +43,9 @@ namespace movaa_project_back.Data
                 entity.Property(s => s.Name).IsRequired().HasMaxLength(150);
                 entity.Property(s => s.Address).IsRequired().HasMaxLength(250);
                 entity.Property(s => s.Phone).IsRequired().HasMaxLength(50);
+                entity.Property(s => s.OwnerName).HasMaxLength(150);
+                entity.Property(s => s.OwnerPhone).HasMaxLength(50);
+                entity.Property(s => s.TaxId).HasMaxLength(50);
             });
 
             modelBuilder.Entity<Specialist>(entity =>

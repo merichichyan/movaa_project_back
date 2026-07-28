@@ -137,6 +137,20 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseCors("AllowAll");
+
+var logosFolder = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "logos");
+if (!Directory.Exists(logosFolder))
+{
+    Directory.CreateDirectory(logosFolder);
+}
+
+app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(logosFolder),
+    RequestPath = "/logos"
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
