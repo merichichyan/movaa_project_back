@@ -6,39 +6,36 @@ namespace movaa_project_back.Domain.Entities;
 public class Salon
 {
     public Guid Id { get; private set; }
-    public string Name { get; private set; } = string.Empty;
-    public string Address { get; private set; } = string.Empty;
-    public string PhoneNumber { get; private set; } = string.Empty;
     public string Category { get; private set; } = "Salon";
+    public string Name { get; private set; } = string.Empty;
+    public string PhoneNumber { get; private set; } = string.Empty;
     public string? Email { get; private set; }
-    public string? Description { get; private set; }
+    public string Address { get; private set; } = string.Empty;
+    public string WorkingHours { get; private set; } = "09:00 - 18:00";
     public string? LogoUrl { get; private set; }
-    public string? OwnerFullName { get; private set; }
-    public string? OwnerPhoneNumber { get; private set; }
-    public string? TaxId { get; private set; }
+    public string OwnerFullName { get; private set; } = string.Empty;
+    public string OwnerPhoneNumber { get; private set; } = string.Empty;
+    public string TaxId { get; private set; } = "00000000";
+    public string? Description { get; private set; }
+    public bool IsApproved { get; private set; } = false;
+    public bool IsActive { get; private set; } = true;
+    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; private set; }
+    public bool IsBlocked { get; private set; } = false;
+    public string? OwnerName { get; private set; }
+    public string? OwnerPhone { get; private set; }
 
+    // Ignored properties (Not in DB table)
     [NotMapped]
     public double Rating { get; private set; } = 5.0;
 
     [NotMapped]
     public int ReviewCount { get; private set; } = 0;
 
-    public bool IsBlocked { get; private set; } = false;
-    public DateTime CreatedAt { get; private set; }
-    public DateTime? UpdatedAt { get; private set; }
-
-    // Compatibility properties for backward-compatible JSON payloads
+    // Compatibility getter for JSON payloads
     [NotMapped]
     [JsonPropertyName("phone")]
     public string Phone => PhoneNumber;
-
-    [NotMapped]
-    [JsonPropertyName("ownerName")]
-    public string? OwnerName => OwnerFullName;
-
-    [NotMapped]
-    [JsonPropertyName("ownerPhone")]
-    public string? OwnerPhone => OwnerPhoneNumber;
 
     protected Salon() { }
 
@@ -47,29 +44,34 @@ public class Salon
         string address,
         string phoneNumber,
         string? category = null,
+        string? workingHours = null,
         string? email = null,
         string? description = null,
         string? logoUrl = null,
         string? ownerFullName = null,
         string? ownerPhoneNumber = null,
         string? taxId = null,
-        double rating = 5.0,
-        int reviewCount = 0)
+        bool isApproved = false,
+        bool isActive = true,
+        bool isBlocked = false)
     {
         Id = Guid.NewGuid();
-        Name = name.Trim();
-        Address = address.Trim();
-        PhoneNumber = phoneNumber.Trim();
+        Name = !string.IsNullOrWhiteSpace(name) ? name.Trim() : "Salon Name";
+        Address = !string.IsNullOrWhiteSpace(address) ? address.Trim() : "N/A";
+        PhoneNumber = !string.IsNullOrWhiteSpace(phoneNumber) ? phoneNumber.Trim() : "+37400000000";
         Category = !string.IsNullOrWhiteSpace(category) ? category.Trim() : "Salon";
+        WorkingHours = !string.IsNullOrWhiteSpace(workingHours) ? workingHours.Trim() : "09:00 - 18:00";
         Email = email?.Trim();
         Description = description?.Trim();
         LogoUrl = logoUrl?.Trim();
-        OwnerFullName = ownerFullName?.Trim();
-        OwnerPhoneNumber = ownerPhoneNumber?.Trim();
-        TaxId = taxId?.Trim();
-        Rating = rating;
-        ReviewCount = reviewCount;
-        IsBlocked = false;
+        OwnerFullName = !string.IsNullOrWhiteSpace(ownerFullName) ? ownerFullName.Trim() : Name;
+        OwnerPhoneNumber = !string.IsNullOrWhiteSpace(ownerPhoneNumber) ? ownerPhoneNumber.Trim() : PhoneNumber;
+        TaxId = !string.IsNullOrWhiteSpace(taxId) ? taxId.Trim() : "00000000";
+        OwnerName = OwnerFullName;
+        OwnerPhone = OwnerPhoneNumber;
+        IsApproved = isApproved;
+        IsActive = isActive;
+        IsBlocked = isBlocked;
         CreatedAt = DateTime.UtcNow;
     }
 
@@ -77,24 +79,34 @@ public class Salon
         string name,
         string address,
         string phoneNumber,
-        string? category,
-        string? email,
-        string? description,
-        string? logoUrl,
+        string? category = null,
+        string? workingHours = null,
+        string? email = null,
+        string? description = null,
+        string? logoUrl = null,
         string? ownerFullName = null,
         string? ownerPhoneNumber = null,
-        string? taxId = null)
+        string? taxId = null,
+        bool? isApproved = null,
+        bool? isActive = null,
+        bool? isBlocked = null)
     {
-        Name = name.Trim();
-        Address = address.Trim();
-        PhoneNumber = phoneNumber.Trim();
+        if (!string.IsNullOrWhiteSpace(name)) Name = name.Trim();
+        if (!string.IsNullOrWhiteSpace(address)) Address = address.Trim();
+        if (!string.IsNullOrWhiteSpace(phoneNumber)) PhoneNumber = phoneNumber.Trim();
         if (!string.IsNullOrWhiteSpace(category)) Category = category.Trim();
-        Email = email?.Trim();
-        Description = description?.Trim();
-        LogoUrl = logoUrl?.Trim();
-        OwnerFullName = ownerFullName?.Trim();
-        OwnerPhoneNumber = ownerPhoneNumber?.Trim();
-        TaxId = taxId?.Trim();
+        if (!string.IsNullOrWhiteSpace(workingHours)) WorkingHours = workingHours.Trim();
+        Email = email?.Trim() ?? Email;
+        Description = description?.Trim() ?? Description;
+        LogoUrl = logoUrl?.Trim() ?? LogoUrl;
+        if (!string.IsNullOrWhiteSpace(ownerFullName)) OwnerFullName = ownerFullName.Trim();
+        if (!string.IsNullOrWhiteSpace(ownerPhoneNumber)) OwnerPhoneNumber = ownerPhoneNumber.Trim();
+        if (!string.IsNullOrWhiteSpace(taxId)) TaxId = taxId.Trim();
+        OwnerName = OwnerFullName;
+        OwnerPhone = OwnerPhoneNumber;
+        if (isApproved.HasValue) IsApproved = isApproved.Value;
+        if (isActive.HasValue) IsActive = isActive.Value;
+        if (isBlocked.HasValue) IsBlocked = isBlocked.Value;
         UpdatedAt = DateTime.UtcNow;
     }
 

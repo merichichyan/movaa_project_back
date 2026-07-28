@@ -120,9 +120,12 @@ public static class AdminEndpoints
 
         adminGroup.MapPost("/salons", async ([FromBody] CreateSalonDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
-            var phoneVal = !string.IsNullOrWhiteSpace(dto.PhoneNumber) ? dto.PhoneNumber : dto.Phone;
-            var ownerPhoneVal = !string.IsNullOrWhiteSpace(dto.OwnerPhoneNumber) ? dto.OwnerPhoneNumber : dto.OwnerPhone;
-            var ownerNameVal = !string.IsNullOrWhiteSpace(dto.OwnerFullName) ? dto.OwnerFullName : dto.OwnerName;
+            var phoneVal = !string.IsNullOrWhiteSpace(dto.PhoneNumber) ? dto.PhoneNumber : (!string.IsNullOrWhiteSpace(dto.Phone) ? dto.Phone : "+37400000000");
+            var ownerPhoneVal = !string.IsNullOrWhiteSpace(dto.OwnerPhoneNumber) ? dto.OwnerPhoneNumber : (!string.IsNullOrWhiteSpace(dto.OwnerPhone) ? dto.OwnerPhone : phoneVal);
+            var ownerNameVal = !string.IsNullOrWhiteSpace(dto.OwnerFullName) ? dto.OwnerFullName : (!string.IsNullOrWhiteSpace(dto.OwnerName) ? dto.OwnerName : dto.Name);
+            var categoryVal = !string.IsNullOrWhiteSpace(dto.Category) ? dto.Category : "Salon";
+            var workingHoursVal = !string.IsNullOrWhiteSpace(dto.WorkingHours) ? dto.WorkingHours : "09:00 - 18:00";
+            var taxIdVal = !string.IsNullOrWhiteSpace(dto.TaxId) ? dto.TaxId : "00000000";
 
             if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Address) || string.IsNullOrWhiteSpace(phoneVal))
             {
@@ -136,13 +139,14 @@ public static class AdminEndpoints
                 name: dto.Name,
                 address: dto.Address,
                 phoneNumber: phoneVal,
-                category: !string.IsNullOrWhiteSpace(dto.Category) ? dto.Category : "Salon",
+                category: categoryVal,
+                workingHours: workingHoursVal,
                 email: dto.Email,
                 description: dto.Description,
                 logoUrl: savedLogoUrl,
                 ownerFullName: ownerNameVal,
                 ownerPhoneNumber: ownerPhoneVal,
-                taxId: dto.TaxId
+                taxId: taxIdVal
             );
 
             try
@@ -160,6 +164,8 @@ public static class AdminEndpoints
                 {
                     await dbContext.Database.ExecuteSqlRawAsync(@"
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""PhoneNumber"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Category"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Name"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Address"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Email"" text;
@@ -199,6 +205,7 @@ public static class AdminEndpoints
                 address: dto.Address,
                 phoneNumber: phoneVal ?? salon.PhoneNumber,
                 category: !string.IsNullOrWhiteSpace(dto.Category) ? dto.Category : salon.Category,
+                workingHours: !string.IsNullOrWhiteSpace(dto.WorkingHours) ? dto.WorkingHours : salon.WorkingHours,
                 email: dto.Email,
                 description: dto.Description,
                 logoUrl: savedLogoUrl,
