@@ -285,46 +285,116 @@ public static class AdminEndpoints
         })
         .WithSummary("Get all specialists (Admin view)");
 
-        adminGroup.MapPost("/specialists", async ([FromBody] CreateSpecialistDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        adminGroup.MapPost("/specialists", async ([FromBody] CreateSpecialistDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Category) || string.IsNullOrWhiteSpace(dto.Phone))
             {
                 return Results.BadRequest(new { message = "Name, category, and phone are required." });
             }
 
+            var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+            var savedAvatarUrl = ImageStorageHelper.SaveBase64Image(dto.AvatarUrl, env.ContentRootPath, hostUrl);
+
             var specialist = new Specialist(
                 name: dto.Name,
                 category: dto.Category,
                 phone: dto.Phone,
+                jobTitle: dto.JobTitle,
                 email: dto.Email,
                 salonId: dto.SalonId,
                 salonName: dto.SalonName,
-                avatarUrl: dto.AvatarUrl
+                avatarUrl: savedAvatarUrl,
+                bio: dto.Bio,
+                experienceYears: dto.ExperienceYears ?? 0,
+                workingHours: dto.WorkingHours,
+                commissionRate: dto.CommissionRate ?? 0.0
             );
 
-            dbContext.Specialists.Add(specialist);
-            await dbContext.SaveChangesAsync(ct);
-            return Results.Ok(specialist);
+            try
+            {
+                dbContext.Specialists.Add(specialist);
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(specialist);
+            }
+            catch (Exception ex)
+            {
+                var innerMessage = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                Console.WriteLine($"Error creating specialist: {ex} -> {innerMessage}");
+
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""JobTitle"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""Bio"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ExperienceYears"" integer DEFAULT 0;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CommissionRate"" double precision DEFAULT 0.0;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                    ", ct);
+
+                    await dbContext.SaveChangesAsync(ct);
+                    return Results.Ok(specialist);
+                }
+                catch
+                {
+                    return Results.Problem(detail: $"Error creating specialist: {innerMessage}", statusCode: 500);
+                }
+            }
         })
         .WithSummary("Create a new specialist");
 
-        adminGroup.MapPut("/specialists/{id:guid}", async (Guid id, [FromBody] UpdateSpecialistDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        adminGroup.MapPut("/specialists/{id:guid}", async (Guid id, [FromBody] UpdateSpecialistDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
             var specialist = await dbContext.Specialists.FirstOrDefaultAsync(sp => sp.Id == id, ct);
             if (specialist == null) return Results.NotFound(new { message = "Specialist not found." });
+
+            var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+            var savedAvatarUrl = ImageStorageHelper.SaveBase64Image(dto.AvatarUrl, env.ContentRootPath, hostUrl);
 
             specialist.Update(
                 name: dto.Name,
                 category: dto.Category,
                 phone: dto.Phone,
+                jobTitle: dto.JobTitle,
                 email: dto.Email,
                 salonId: dto.SalonId,
                 salonName: dto.SalonName,
-                avatarUrl: dto.AvatarUrl
+                avatarUrl: savedAvatarUrl,
+                bio: dto.Bio,
+                experienceYears: dto.ExperienceYears ?? 0,
+                workingHours: dto.WorkingHours,
+                commissionRate: dto.CommissionRate ?? 0.0
             );
 
-            await dbContext.SaveChangesAsync(ct);
-            return Results.Ok(specialist);
+            try
+            {
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(specialist);
+            }
+            catch (Exception ex)
+            {
+                var innerMessage = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                Console.WriteLine($"Error updating specialist: {ex} -> {innerMessage}");
+
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""JobTitle"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""Bio"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ExperienceYears"" integer DEFAULT 0;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CommissionRate"" double precision DEFAULT 0.0;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                    ", ct);
+
+                    await dbContext.SaveChangesAsync(ct);
+                    return Results.Ok(specialist);
+                }
+                catch
+                {
+                    return Results.Problem(detail: $"Error updating specialist: {innerMessage}", statusCode: 500);
+                }
+            }
         })
         .WithSummary("Update specialist details");
 

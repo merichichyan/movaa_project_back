@@ -46,18 +46,28 @@ public record CreateSpecialistDto(
     string Name,
     string Category,
     string Phone,
+    string? JobTitle,
     string? Email,
     Guid? SalonId,
     string? SalonName,
-    string? AvatarUrl
+    string? AvatarUrl,
+    string? Bio,
+    int? ExperienceYears,
+    string? WorkingHours,
+    double? CommissionRate
 );
 
 public record UpdateSpecialistDto(
     string Name,
     string Category,
     string Phone,
+    string? JobTitle,
     string? Email,
     Guid? SalonId,
     string? SalonName,
-    string? AvatarUrl
+    string? AvatarUrl,
+    string? Bio,
+    int? ExperienceYears,
+    string? WorkingHours,
+    double? CommissionRate
 );
