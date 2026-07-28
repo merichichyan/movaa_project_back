@@ -19,24 +19,22 @@ public static class ImageStorageHelper
         try
         {
             string extension = ".png";
-            string base64Data = base64String;
+            string base64Data = base64String.Trim();
 
-            if (base64String.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            if (base64Data.Contains(","))
             {
-                var match = Regex.Match(base64String, @"data:image/(?<type>.*?);base64,(?<data>.*)");
-                if (match.Success)
-                {
-                    var type = match.Groups["type"].Value.ToLower();
-                    extension = type switch
-                    {
-                        "jpeg" or "jpg" => ".jpg",
-                        "gif" => ".gif",
-                        "webp" => ".webp",
-                        _ => ".png"
-                    };
-                    base64Data = match.Groups["data"].Value;
-                }
+                var parts = base64Data.Split(',', 2);
+                var header = parts[0].ToLower();
+                base64Data = parts[1];
+
+                if (header.Contains("jpeg") || header.Contains("jpg")) extension = ".jpg";
+                else if (header.Contains("gif")) extension = ".gif";
+                else if (header.Contains("webp")) extension = ".webp";
+                else extension = ".png";
             }
+
+            // Clean up any newlines or whitespace in base64 string
+            base64Data = Regex.Replace(base64Data, @"\s+", "");
 
             byte[] imageBytes = Convert.FromBase64String(base64Data);
 

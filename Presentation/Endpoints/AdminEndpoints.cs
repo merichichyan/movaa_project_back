@@ -120,54 +120,70 @@ public static class AdminEndpoints
 
         adminGroup.MapPost("/salons", async ([FromBody] CreateSalonDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
-            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Address) || string.IsNullOrWhiteSpace(dto.Phone))
+            try
             {
-                return Results.BadRequest(new { message = "Name, address, and phone are required." });
+                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Address) || string.IsNullOrWhiteSpace(dto.Phone))
+                {
+                    return Results.BadRequest(new { message = "Name, address, and phone are required." });
+                }
+
+                var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+                var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
+
+                var salon = new Salon(
+                    name: dto.Name,
+                    address: dto.Address,
+                    phone: dto.Phone,
+                    email: dto.Email,
+                    description: dto.Description,
+                    logoUrl: savedLogoUrl,
+                    ownerName: dto.OwnerName,
+                    ownerPhone: dto.OwnerPhone,
+                    taxId: dto.TaxId
+                );
+
+                dbContext.Salons.Add(salon);
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(salon);
             }
-
-            var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
-            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
-
-            var salon = new Salon(
-                name: dto.Name,
-                address: dto.Address,
-                phone: dto.Phone,
-                email: dto.Email,
-                description: dto.Description,
-                logoUrl: savedLogoUrl,
-                ownerName: dto.OwnerName,
-                ownerPhone: dto.OwnerPhone,
-                taxId: dto.TaxId
-            );
-
-            dbContext.Salons.Add(salon);
-            await dbContext.SaveChangesAsync(ct);
-            return Results.Ok(salon);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating salon: {ex}");
+                return Results.Problem(detail: $"Error creating salon: {ex.Message}", statusCode: 500);
+            }
         })
         .WithSummary("Create a new salon");
 
         adminGroup.MapPut("/salons/{id:guid}", async (Guid id, [FromBody] UpdateSalonDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
-            var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == id, ct);
-            if (salon == null) return Results.NotFound(new { message = "Salon not found." });
+            try
+            {
+                var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == id, ct);
+                if (salon == null) return Results.NotFound(new { message = "Salon not found." });
 
-            var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
-            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
+                var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+                var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
 
-            salon.Update(
-                name: dto.Name,
-                address: dto.Address,
-                phone: dto.Phone,
-                email: dto.Email,
-                description: dto.Description,
-                logoUrl: savedLogoUrl,
-                ownerName: dto.OwnerName,
-                ownerPhone: dto.OwnerPhone,
-                taxId: dto.TaxId
-            );
+                salon.Update(
+                    name: dto.Name,
+                    address: dto.Address,
+                    phone: dto.Phone,
+                    email: dto.Email,
+                    description: dto.Description,
+                    logoUrl: savedLogoUrl,
+                    ownerName: dto.OwnerName,
+                    ownerPhone: dto.OwnerPhone,
+                    taxId: dto.TaxId
+                );
 
-            await dbContext.SaveChangesAsync(ct);
-            return Results.Ok(salon);
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(salon);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating salon: {ex}");
+                return Results.Problem(detail: $"Error updating salon: {ex.Message}", statusCode: 500);
+            }
         })
         .WithSummary("Update salon details");
 

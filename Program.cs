@@ -12,6 +12,12 @@ using movaa_project_back.Presentation.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Increase Max Request Body Size to 50 MB for Base64 Logo uploads
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 52428800; // 50 MB
+});
+
 // Add DbContext
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
                        ?? builder.Configuration.GetConnectionString("DefaultConnection");
