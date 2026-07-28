@@ -120,69 +120,103 @@ public static class AdminEndpoints
 
         adminGroup.MapPost("/salons", async ([FromBody] CreateSalonDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
+            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Address) || string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                return Results.BadRequest(new { message = "Name, address, and phone are required." });
+            }
+
+            var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
+
+            var salon = new Salon(
+                name: dto.Name,
+                address: dto.Address,
+                phone: dto.Phone,
+                email: dto.Email,
+                description: dto.Description,
+                logoUrl: savedLogoUrl,
+                ownerName: dto.OwnerName,
+                ownerPhone: dto.OwnerPhone,
+                taxId: dto.TaxId
+            );
+
             try
             {
-                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Address) || string.IsNullOrWhiteSpace(dto.Phone))
-                {
-                    return Results.BadRequest(new { message = "Name, address, and phone are required." });
-                }
-
-                var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
-                var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
-
-                var salon = new Salon(
-                    name: dto.Name,
-                    address: dto.Address,
-                    phone: dto.Phone,
-                    email: dto.Email,
-                    description: dto.Description,
-                    logoUrl: savedLogoUrl,
-                    ownerName: dto.OwnerName,
-                    ownerPhone: dto.OwnerPhone,
-                    taxId: dto.TaxId
-                );
-
                 dbContext.Salons.Add(salon);
                 await dbContext.SaveChangesAsync(ct);
                 return Results.Ok(salon);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error creating salon: {ex}");
-                return Results.Problem(detail: $"Error creating salon: {ex.Message}", statusCode: 500);
+                var innerMessage = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                Console.WriteLine($"Error creating salon: {ex} -> {innerMessage}");
+
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
+                    ", ct);
+
+                    await dbContext.SaveChangesAsync(ct);
+                    return Results.Ok(salon);
+                }
+                catch
+                {
+                    return Results.Problem(detail: $"Error creating salon: {innerMessage}", statusCode: 500);
+                }
             }
         })
         .WithSummary("Create a new salon");
 
         adminGroup.MapPut("/salons/{id:guid}", async (Guid id, [FromBody] UpdateSalonDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
+            var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == id, ct);
+            if (salon == null) return Results.NotFound(new { message = "Salon not found." });
+
+            var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
+
+            salon.Update(
+                name: dto.Name,
+                address: dto.Address,
+                phone: dto.Phone,
+                email: dto.Email,
+                description: dto.Description,
+                logoUrl: savedLogoUrl,
+                ownerName: dto.OwnerName,
+                ownerPhone: dto.OwnerPhone,
+                taxId: dto.TaxId
+            );
+
             try
             {
-                var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == id, ct);
-                if (salon == null) return Results.NotFound(new { message = "Salon not found." });
-
-                var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
-                var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
-
-                salon.Update(
-                    name: dto.Name,
-                    address: dto.Address,
-                    phone: dto.Phone,
-                    email: dto.Email,
-                    description: dto.Description,
-                    logoUrl: savedLogoUrl,
-                    ownerName: dto.OwnerName,
-                    ownerPhone: dto.OwnerPhone,
-                    taxId: dto.TaxId
-                );
-
                 await dbContext.SaveChangesAsync(ct);
                 return Results.Ok(salon);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error updating salon: {ex}");
-                return Results.Problem(detail: $"Error updating salon: {ex.Message}", statusCode: 500);
+                var innerMessage = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                Console.WriteLine($"Error updating salon: {ex} -> {innerMessage}");
+
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
+                    ", ct);
+
+                    await dbContext.SaveChangesAsync(ct);
+                    return Results.Ok(salon);
+                }
+                catch
+                {
+                    return Results.Problem(detail: $"Error updating salon: {innerMessage}", statusCode: 500);
+                }
             }
         })
         .WithSummary("Update salon details");
