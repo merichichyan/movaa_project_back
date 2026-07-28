@@ -266,45 +266,6 @@ public static class AdminEndpoints
         })
         .WithSummary("Block or unblock a specialist");
 
-        // ------------------ PUBLIC ENDPOINTS FOR USER APP ------------------
-        var publicGroup = app.MapGroup("/api").WithTags("Public");
-
-        publicGroup.MapGet("/salons", async (AppDbContext dbContext, CancellationToken ct) =>
-        {
-            try
-            {
-                var activeSalons = await dbContext.Salons
-                    .Where(s => !s.IsBlocked)
-                    .OrderByDescending(s => s.Rating)
-                    .ToListAsync(ct);
-                return Results.Ok(activeSalons);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching public salons: {ex}");
-                return Results.Problem(detail: ex.Message, statusCode: 500);
-            }
-        })
-        .WithSummary("Get active salons for user app");
-
-        publicGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct) =>
-        {
-            try
-            {
-                var activeSpecialists = await dbContext.Specialists
-                    .Where(sp => !sp.IsBlocked)
-                    .OrderByDescending(sp => sp.Rating)
-                    .ToListAsync(ct);
-                return Results.Ok(activeSpecialists);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching public specialists: {ex}");
-                return Results.Problem(detail: ex.Message, statusCode: 500);
-            }
-        })
-        .WithSummary("Get active specialists for user app");
-
         return app;
     }
 }
