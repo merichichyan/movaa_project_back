@@ -262,6 +262,27 @@ public static class AdminEndpoints
             {
                 var specialists = await dbContext.Specialists
                     .OrderByDescending(sp => sp.CreatedAt)
+                    .Select(sp => new
+                    {
+                        sp.Id,
+                        sp.Name,
+                        sp.JobTitle,
+                        sp.Category,
+                        sp.Phone,
+                        sp.Email,
+                        sp.SalonId,
+                        sp.SalonName,
+                        sp.AvatarUrl,
+                        sp.Bio,
+                        sp.ExperienceYears,
+                        sp.WorkingHours,
+                        sp.CommissionRate,
+                        sp.Rating,
+                        sp.ReviewCount,
+                        sp.IsBlocked,
+                        sp.CreatedAt,
+                        sp.UpdatedAt
+                    })
                     .ToListAsync(ct);
                 return Results.Ok(specialists);
             }
@@ -271,10 +292,37 @@ public static class AdminEndpoints
                 try
                 {
                     await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""JobTitle"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""Bio"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ExperienceYears"" integer DEFAULT 0;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CommissionRate"" double precision DEFAULT 0.0;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
-                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""SalonName"" text;
                     ", ct);
-                    var retrySpecialists = await dbContext.Specialists.OrderByDescending(sp => sp.CreatedAt).ToListAsync(ct);
+                    var retrySpecialists = await dbContext.Specialists
+                        .OrderByDescending(sp => sp.CreatedAt)
+                        .Select(sp => new
+                        {
+                            sp.Id,
+                            sp.Name,
+                            sp.JobTitle,
+                            sp.Category,
+                            sp.Phone,
+                            sp.Email,
+                            sp.SalonId,
+                            sp.SalonName,
+                            sp.AvatarUrl,
+                            sp.Bio,
+                            sp.ExperienceYears,
+                            sp.WorkingHours,
+                            sp.CommissionRate,
+                            sp.Rating,
+                            sp.ReviewCount,
+                            sp.IsBlocked,
+                            sp.CreatedAt,
+                            sp.UpdatedAt
+                        })
+                        .ToListAsync(ct);
                     return Results.Ok(retrySpecialists);
                 }
                 catch
