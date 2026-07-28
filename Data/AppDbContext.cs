@@ -57,6 +57,8 @@ namespace movaa_project_back.Data
                 entity.Ignore(s => s.Phone);
                 entity.Ignore(s => s.OwnerName);
                 entity.Ignore(s => s.OwnerPhone);
+                entity.Ignore(s => s.Rating);
+                entity.Ignore(s => s.ReviewCount);
             });
 
             modelBuilder.Entity<Specialist>(entity =>

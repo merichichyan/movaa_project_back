@@ -15,7 +15,10 @@ public class Salon
     public string? OwnerFullName { get; private set; }
     public string? OwnerPhoneNumber { get; private set; }
     public string? TaxId { get; private set; }
+    [NotMapped]
     public double Rating { get; private set; } = 5.0;
+
+    [NotMapped]
     public int ReviewCount { get; private set; } = 0;
     public bool IsBlocked { get; private set; } = false;
     public DateTime CreatedAt { get; private set; }
