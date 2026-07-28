@@ -13,6 +13,7 @@ namespace movaa_project_back.Data
         public DbSet<Admin> Admins => Set<Admin>();
         public DbSet<Salon> Salons => Set<Salon>();
         public DbSet<Specialist> Specialists => Set<Specialist>();
+        public DbSet<Category> Categories => Set<Category>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

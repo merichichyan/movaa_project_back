@@ -172,6 +172,43 @@ using (var scope = app.Services.CreateScope())
             dbContext.SaveChanges();
             Console.WriteLine("Seeded Admin user 'merichichyan' in Users table successfully.");
         }
+
+        try
+        {
+            dbContext.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""Categories"" (
+                    ""Id"" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    ""NameHy"" TEXT NOT NULL,
+                    ""NameEn"" TEXT NOT NULL,
+                    ""NameRu"" TEXT NOT NULL,
+                    ""IconName"" TEXT DEFAULT 'grid_view_rounded',
+                    ""DisplayOrder"" INT DEFAULT 0,
+                    ""IsActive"" BOOLEAN DEFAULT TRUE,
+                    ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
+                );
+            ");
+
+            if (!dbContext.Categories.Any())
+            {
+                var defaultCategories = new List<movaa_project_back.Domain.Entities.Category>
+                {
+                    new("Վարսավիր", "Hair Stylist", "Парикмахер", "content_cut_rounded", 1),
+                    new("Մատնահարդար", "Nail Art", "Ногтевой сервис", "auto_fix_high_rounded", 2),
+                    new("Գեղեցկություն", "Beauty & Makeup", "Макияж", "face_retouching_natural_rounded", 3),
+                    new("Barber Shop", "Barber Shop", "Барбершоп", "content_cut_outlined", 4),
+                    new("Սպա / Մասաժ", "Spa & Massage", "СПА и Массаж", "spa_rounded", 5),
+                    new("Կոսմետոլոգիա", "Cosmetology", "Косметология", "health_and_safety_rounded", 6),
+                };
+                dbContext.Categories.AddRange(defaultCategories);
+                dbContext.SaveChanges();
+                Console.WriteLine("Seeded initial categories successfully.");
+            }
+        }
+        catch (Exception catEx)
+        {
+            Console.WriteLine($"Category Migration notice: {catEx.Message}");
+        }
     }
     catch (Exception ex)
     {

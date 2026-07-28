@@ -71,3 +71,20 @@ public record UpdateSpecialistDto(
     string? WorkingHours,
     double? CommissionRate
 );
+
+public record CreateCategoryDto(
+    string NameHy,
+    string NameEn,
+    string NameRu,
+    string? IconName,
+    int? DisplayOrder
+);
+
+public record UpdateCategoryDto(
+    string NameHy,
+    string NameEn,
+    string NameRu,
+    string? IconName,
+    int? DisplayOrder,
+    bool IsActive
+);

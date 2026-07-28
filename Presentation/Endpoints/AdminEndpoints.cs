@@ -457,6 +457,76 @@ public static class AdminEndpoints
         })
         .WithSummary("Block or unblock a specialist");
 
+        // ------------------ CATEGORIES MANAGEMENT ------------------
+        adminGroup.MapGet("/categories", async (AppDbContext dbContext, CancellationToken ct) =>
+        {
+            try
+            {
+                var categories = await dbContext.Categories
+                    .OrderBy(c => c.DisplayOrder)
+                    .ThenBy(c => c.CreatedAt)
+                    .ToListAsync(ct);
+                return Results.Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching categories: {ex}");
+                return Results.Ok(new List<object>());
+            }
+        })
+        .WithSummary("Get all categories");
+
+        adminGroup.MapPost("/categories", async ([FromBody] CreateCategoryDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(dto.NameHy))
+            {
+                return Results.BadRequest(new { message = "Armenian category name (NameHy) is required." });
+            }
+
+            var category = new Category(
+                nameHy: dto.NameHy,
+                nameEn: !string.IsNullOrWhiteSpace(dto.NameEn) ? dto.NameEn : dto.NameHy,
+                nameRu: !string.IsNullOrWhiteSpace(dto.NameRu) ? dto.NameRu : dto.NameHy,
+                iconName: dto.IconName ?? "grid_view_rounded",
+                displayOrder: dto.DisplayOrder ?? 0
+            );
+
+            dbContext.Categories.Add(category);
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(category);
+        })
+        .WithSummary("Create a new category");
+
+        adminGroup.MapPut("/categories/{id:guid}", async (Guid id, [FromBody] UpdateCategoryDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var category = await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == id, ct);
+            if (category == null) return Results.NotFound(new { message = "Category not found." });
+
+            category.Update(
+                nameHy: dto.NameHy,
+                nameEn: !string.IsNullOrWhiteSpace(dto.NameEn) ? dto.NameEn : dto.NameHy,
+                nameRu: !string.IsNullOrWhiteSpace(dto.NameRu) ? dto.NameRu : dto.NameHy,
+                iconName: dto.IconName ?? category.IconName,
+                displayOrder: dto.DisplayOrder ?? category.DisplayOrder,
+                isActive: dto.IsActive
+            );
+
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(category);
+        })
+        .WithSummary("Update category details");
+
+        adminGroup.MapDelete("/categories/{id:guid}", async (Guid id, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var category = await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == id, ct);
+            if (category == null) return Results.NotFound(new { message = "Category not found." });
+
+            dbContext.Categories.Remove(category);
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Category deleted successfully." });
+        })
+        .WithSummary("Delete a category");
+
         return app;
     }
 }
