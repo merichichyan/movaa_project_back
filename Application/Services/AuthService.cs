@@ -84,7 +84,8 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Phone))
+        var phoneInput = !string.IsNullOrWhiteSpace(request.Phone) ? request.Phone : request.PhoneNumber;
+        if (string.IsNullOrWhiteSpace(phoneInput))
         {
             throw new ArgumentException("Phone number is required.");
         }
@@ -94,7 +95,7 @@ public class AuthService : IAuthService
             throw new ArgumentException("Password is required.");
         }
 
-        var user = await _userRepository.GetByPhoneAsync(request.Phone, ct);
+        var user = await _userRepository.GetByPhoneAsync(phoneInput, ct);
         if (user == null)
         {
             throw new UnauthorizedAccessException("Invalid phone number or password.");
@@ -105,7 +106,34 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Account is blocked. Please contact support.");
         }
 
-        var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+        var pass = request.Password.Trim();
+        var isPasswordValid = false;
+
+        try
+        {
+            isPasswordValid = BCrypt.Net.BCrypt.Verify(pass, user.PasswordHash);
+        }
+        catch { }
+
+        if (!isPasswordValid)
+        {
+            try
+            {
+                var identityHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<string>();
+                var result = identityHasher.VerifyHashedPassword(user.Phone, user.PasswordHash, pass);
+                if (result != Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed)
+                {
+                    isPasswordValid = true;
+                }
+            }
+            catch { }
+
+            if (!isPasswordValid && (user.PasswordHash == pass || user.PasswordHash == request.Password))
+            {
+                isPasswordValid = true;
+            }
+        }
+
         if (!isPasswordValid)
         {
             throw new UnauthorizedAccessException("Invalid phone number or password.");

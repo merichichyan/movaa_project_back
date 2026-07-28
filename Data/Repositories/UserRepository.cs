@@ -21,13 +21,25 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByPhoneAsync(string phone, CancellationToken ct = default)
     {
-        var raw = phone.Trim().Replace(" ", "");
-        var digits = raw.StartsWith("+374") ? raw.Substring(4) : (raw.StartsWith("374") ? raw.Substring(3) : raw);
-        var formattedWithPlus = "+374" + digits;
-        var formattedClean = "374" + digits;
+        if (string.IsNullOrWhiteSpace(phone)) return null;
+
+        var raw = phone.Trim().Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "");
+        var digitsOnly = System.Text.RegularExpressions.Regex.Replace(raw, @"\D", "");
+        var digitsNoPrefix = digitsOnly.StartsWith("374") ? digitsOnly.Substring(3) : digitsOnly;
+
+        var option1 = raw;
+        var option2 = digitsOnly;
+        var option3 = "+" + digitsOnly;
+        var option4 = "+374" + digitsNoPrefix;
+        var option5 = "374" + digitsNoPrefix;
 
         return await _context.Users.FirstOrDefaultAsync(
-            u => u.Phone == raw || u.Phone == digits || u.Phone == formattedWithPlus || u.Phone == formattedClean,
+            u => u.Phone == option1 || 
+                 u.Phone == option2 || 
+                 u.Phone == option3 || 
+                 u.Phone == option4 || 
+                 u.Phone == option5 ||
+                 u.Phone.EndsWith(digitsNoPrefix),
             ct);
     }
 

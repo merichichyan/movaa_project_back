@@ -1,7 +1,8 @@
 namespace movaa_project_back.Application.DTOs.Auth;
 
 public record LoginRequestDto(
-    string Phone,
+    string? Phone,
+    string? PhoneNumber,
     string Password
 );
 
