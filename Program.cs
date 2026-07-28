@@ -13,9 +13,15 @@ using movaa_project_back.Presentation.Endpoints;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add DbContext
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+                       ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
 if (!string.IsNullOrEmpty(connectionString))
 {
+    if (connectionString.StartsWith("postgresql://") || connectionString.StartsWith("postgres://"))
+    {
+        connectionString = ConvertPostgresUrlToConnectionString(connectionString);
+    }
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
@@ -190,3 +196,16 @@ app.MapGet("/api/health", () => Results.Ok(new
 }));
 
 app.Run();
+
+static string ConvertPostgresUrlToConnectionString(string postgresUrl)
+{
+    var uri = new Uri(postgresUrl);
+    var userInfo = uri.UserInfo.Split(':');
+    var username = userInfo.Length > 0 ? userInfo[0] : "";
+    var password = userInfo.Length > 1 ? userInfo[1] : "";
+    var host = uri.Host;
+    var port = uri.Port > 0 ? uri.Port : 5432;
+    var database = uri.AbsolutePath.TrimStart('/');
+
+    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+}
