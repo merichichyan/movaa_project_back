@@ -44,6 +44,7 @@ namespace movaa_project_back.Data
                 entity.Property(s => s.Name).HasColumnName("Name").IsRequired().HasMaxLength(150);
                 entity.Property(s => s.Address).HasColumnName("Address").IsRequired().HasMaxLength(250);
                 entity.Property(s => s.PhoneNumber).HasColumnName("PhoneNumber").IsRequired().HasMaxLength(50);
+                entity.Property(s => s.Category).HasColumnName("Category").HasDefaultValue("Salon");
                 entity.Property(s => s.OwnerFullName).HasColumnName("OwnerFullName").HasMaxLength(150);
                 entity.Property(s => s.OwnerPhoneNumber).HasColumnName("OwnerPhoneNumber").HasMaxLength(50);
                 entity.Property(s => s.TaxId).HasColumnName("TaxId").HasMaxLength(50);

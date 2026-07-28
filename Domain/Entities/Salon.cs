@@ -9,17 +9,20 @@ public class Salon
     public string Name { get; private set; } = string.Empty;
     public string Address { get; private set; } = string.Empty;
     public string PhoneNumber { get; private set; } = string.Empty;
+    public string Category { get; private set; } = "Salon";
     public string? Email { get; private set; }
     public string? Description { get; private set; }
     public string? LogoUrl { get; private set; }
     public string? OwnerFullName { get; private set; }
     public string? OwnerPhoneNumber { get; private set; }
     public string? TaxId { get; private set; }
+
     [NotMapped]
     public double Rating { get; private set; } = 5.0;
 
     [NotMapped]
     public int ReviewCount { get; private set; } = 0;
+
     public bool IsBlocked { get; private set; } = false;
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -43,6 +46,7 @@ public class Salon
         string name,
         string address,
         string phoneNumber,
+        string? category = null,
         string? email = null,
         string? description = null,
         string? logoUrl = null,
@@ -56,6 +60,7 @@ public class Salon
         Name = name.Trim();
         Address = address.Trim();
         PhoneNumber = phoneNumber.Trim();
+        Category = !string.IsNullOrWhiteSpace(category) ? category.Trim() : "Salon";
         Email = email?.Trim();
         Description = description?.Trim();
         LogoUrl = logoUrl?.Trim();
@@ -72,6 +77,7 @@ public class Salon
         string name,
         string address,
         string phoneNumber,
+        string? category,
         string? email,
         string? description,
         string? logoUrl,
@@ -82,6 +88,7 @@ public class Salon
         Name = name.Trim();
         Address = address.Trim();
         PhoneNumber = phoneNumber.Trim();
+        if (!string.IsNullOrWhiteSpace(category)) Category = category.Trim();
         Email = email?.Trim();
         Description = description?.Trim();
         LogoUrl = logoUrl?.Trim();
