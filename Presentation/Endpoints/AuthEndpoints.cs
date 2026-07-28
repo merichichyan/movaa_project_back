@@ -71,6 +71,26 @@ public static class AuthEndpoints
         .WithSummary("Log in user")
         .WithDescription("Authenticates user with phone number and password, returning JWT token.");
 
+        // Direct alias for clients requesting /api/login
+        app.MapPost("/api/login", async ([FromBody] LoginRequestDto request, IAuthService authService, CancellationToken ct) =>
+        {
+            try
+            {
+                var result = await authService.LoginAsync(request, ct);
+                return Results.Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Results.Unauthorized();
+            }
+        })
+        .WithTags("Auth")
+        .WithSummary("Log in user (Direct endpoint)");
+
 
 
         authGroup.MapPost("/select-role", async ([FromBody] SelectRoleRequestDto request, IAuthService authService, CancellationToken ct) =>

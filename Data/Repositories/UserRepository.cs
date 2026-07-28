@@ -21,8 +21,14 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByPhoneAsync(string phone, CancellationToken ct = default)
     {
-        var normalizedPhone = phone.Trim();
-        return await _context.Users.FirstOrDefaultAsync(u => u.Phone == normalizedPhone, ct);
+        var raw = phone.Trim().Replace(" ", "");
+        var digits = raw.StartsWith("+374") ? raw.Substring(4) : (raw.StartsWith("374") ? raw.Substring(3) : raw);
+        var formattedWithPlus = "+374" + digits;
+        var formattedClean = "374" + digits;
+
+        return await _context.Users.FirstOrDefaultAsync(
+            u => u.Phone == raw || u.Phone == digits || u.Phone == formattedWithPlus || u.Phone == formattedClean,
+            ct);
     }
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
