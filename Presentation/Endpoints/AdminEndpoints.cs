@@ -139,12 +139,24 @@ public static class AdminEndpoints
                 name: dto.Name,
                 address: dto.Address,
                 phoneNumber: phoneVal,
+                nameHy: dto.NameHy,
+                nameEn: dto.NameEn,
+                nameRu: dto.NameRu,
+                addressHy: dto.AddressHy,
+                addressEn: dto.AddressEn,
+                addressRu: dto.AddressRu,
                 category: categoryVal,
                 workingHours: workingHoursVal,
                 email: dto.Email,
                 description: dto.Description,
+                descriptionHy: dto.DescriptionHy,
+                descriptionEn: dto.DescriptionEn,
+                descriptionRu: dto.DescriptionRu,
                 logoUrl: savedLogoUrl,
                 ownerFullName: ownerNameVal,
+                ownerNameHy: dto.OwnerNameHy,
+                ownerNameEn: dto.OwnerNameEn,
+                ownerNameRu: dto.OwnerNameRu,
                 ownerPhoneNumber: ownerPhoneVal,
                 taxId: taxIdVal
             );
@@ -167,11 +179,23 @@ public static class AdminEndpoints
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Category"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Name"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""NameRu"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Address"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""AddressHy"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""AddressEn"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""AddressRu"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Email"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Description"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""DescriptionHy"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""DescriptionEn"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""DescriptionRu"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""LogoUrl"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerFullName"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerNameHy"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerNameEn"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerNameRu"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhoneNumber"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
@@ -204,12 +228,24 @@ public static class AdminEndpoints
                 name: dto.Name,
                 address: dto.Address,
                 phoneNumber: phoneVal ?? salon.PhoneNumber,
+                nameHy: dto.NameHy,
+                nameEn: dto.NameEn,
+                nameRu: dto.NameRu,
+                addressHy: dto.AddressHy,
+                addressEn: dto.AddressEn,
+                addressRu: dto.AddressRu,
                 category: !string.IsNullOrWhiteSpace(dto.Category) ? dto.Category : salon.Category,
                 workingHours: !string.IsNullOrWhiteSpace(dto.WorkingHours) ? dto.WorkingHours : salon.WorkingHours,
                 email: dto.Email,
                 description: dto.Description,
+                descriptionHy: dto.DescriptionHy,
+                descriptionEn: dto.DescriptionEn,
+                descriptionRu: dto.DescriptionRu,
                 logoUrl: savedLogoUrl,
                 ownerFullName: ownerNameVal,
+                ownerNameHy: dto.OwnerNameHy,
+                ownerNameEn: dto.OwnerNameEn,
+                ownerNameRu: dto.OwnerNameRu,
                 ownerPhoneNumber: ownerPhoneVal,
                 taxId: dto.TaxId
             );
@@ -347,12 +383,21 @@ public static class AdminEndpoints
                 name: dto.Name,
                 category: dto.Category,
                 phone: dto.Phone,
+                nameHy: dto.NameHy,
+                nameEn: dto.NameEn,
+                nameRu: dto.NameRu,
                 jobTitle: dto.JobTitle,
+                jobTitleHy: dto.JobTitleHy,
+                jobTitleEn: dto.JobTitleEn,
+                jobTitleRu: dto.JobTitleRu,
                 email: dto.Email,
                 salonId: dto.SalonId,
                 salonName: dto.SalonName,
                 avatarUrl: savedAvatarUrl,
                 bio: dto.Bio,
+                bioHy: dto.BioHy,
+                bioEn: dto.BioEn,
+                bioRu: dto.BioRu,
                 experienceYears: dto.ExperienceYears ?? 0,
                 workingHours: dto.WorkingHours,
                 commissionRate: dto.CommissionRate ?? 0.0
@@ -373,7 +418,16 @@ public static class AdminEndpoints
                 {
                     await dbContext.Database.ExecuteSqlRawAsync(@"
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""JobTitle"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""JobTitleHy"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""JobTitleEn"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""JobTitleRu"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""NameRu"" text;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""Bio"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""BioHy"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""BioEn"" text;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""BioRu"" text;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ExperienceYears"" integer DEFAULT 0;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CommissionRate"" double precision DEFAULT 0.0;
@@ -403,12 +457,21 @@ public static class AdminEndpoints
                 name: dto.Name,
                 category: dto.Category,
                 phone: dto.Phone,
+                nameHy: dto.NameHy,
+                nameEn: dto.NameEn,
+                nameRu: dto.NameRu,
                 jobTitle: dto.JobTitle,
+                jobTitleHy: dto.JobTitleHy,
+                jobTitleEn: dto.JobTitleEn,
+                jobTitleRu: dto.JobTitleRu,
                 email: dto.Email,
                 salonId: dto.SalonId,
                 salonName: dto.SalonName,
                 avatarUrl: savedAvatarUrl,
                 bio: dto.Bio,
+                bioHy: dto.BioHy,
+                bioEn: dto.BioEn,
+                bioRu: dto.BioRu,
                 experienceYears: dto.ExperienceYears ?? 0,
                 workingHours: dto.WorkingHours,
                 commissionRate: dto.CommissionRate ?? 0.0
