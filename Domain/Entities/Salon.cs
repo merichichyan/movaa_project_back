@@ -89,13 +89,13 @@ public class Salon
         Id = Guid.NewGuid();
         Name = !string.IsNullOrWhiteSpace(name) ? name.Trim() : "Salon Name";
         NameHy = !string.IsNullOrWhiteSpace(nameHy) ? nameHy.Trim() : Name;
-        NameEn = !string.IsNullOrWhiteSpace(nameEn) ? nameEn.Trim() : NameHy;
-        NameRu = !string.IsNullOrWhiteSpace(nameRu) ? nameRu.Trim() : NameHy;
+        NameEn = !string.IsNullOrWhiteSpace(nameEn) ? nameEn.Trim() : string.Empty;
+        NameRu = !string.IsNullOrWhiteSpace(nameRu) ? nameRu.Trim() : string.Empty;
 
         Address = !string.IsNullOrWhiteSpace(address) ? address.Trim() : "N/A";
         AddressHy = !string.IsNullOrWhiteSpace(addressHy) ? addressHy.Trim() : Address;
-        AddressEn = !string.IsNullOrWhiteSpace(addressEn) ? addressEn.Trim() : AddressHy;
-        AddressRu = !string.IsNullOrWhiteSpace(addressRu) ? addressRu.Trim() : AddressHy;
+        AddressEn = !string.IsNullOrWhiteSpace(addressEn) ? addressEn.Trim() : string.Empty;
+        AddressRu = !string.IsNullOrWhiteSpace(addressRu) ? addressRu.Trim() : string.Empty;
 
         PhoneNumber = !string.IsNullOrWhiteSpace(phoneNumber) ? phoneNumber.Trim() : "+37400000000";
         Category = !string.IsNullOrWhiteSpace(category) ? category.Trim() : "Salon";
@@ -103,17 +103,17 @@ public class Salon
         Email = email?.Trim();
 
         Description = description?.Trim();
-        DescriptionHy = !string.IsNullOrWhiteSpace(descriptionHy) ? descriptionHy.Trim() : Description;
-        DescriptionEn = !string.IsNullOrWhiteSpace(descriptionEn) ? descriptionEn.Trim() : DescriptionHy;
-        DescriptionRu = !string.IsNullOrWhiteSpace(descriptionRu) ? descriptionRu.Trim() : DescriptionHy;
+        DescriptionHy = !string.IsNullOrWhiteSpace(descriptionHy) ? descriptionHy.Trim() : (description?.Trim() ?? string.Empty);
+        DescriptionEn = !string.IsNullOrWhiteSpace(descriptionEn) ? descriptionEn.Trim() : string.Empty;
+        DescriptionRu = !string.IsNullOrWhiteSpace(descriptionRu) ? descriptionRu.Trim() : string.Empty;
 
         LogoUrl = logoUrl?.Trim();
         OwnerFullName = !string.IsNullOrWhiteSpace(ownerFullName) ? ownerFullName.Trim() : Name;
         OwnerName = OwnerFullName;
 
         OwnerNameHy = !string.IsNullOrWhiteSpace(ownerNameHy) ? ownerNameHy.Trim() : OwnerFullName;
-        OwnerNameEn = !string.IsNullOrWhiteSpace(ownerNameEn) ? ownerNameEn.Trim() : OwnerNameHy;
-        OwnerNameRu = !string.IsNullOrWhiteSpace(ownerNameRu) ? ownerNameRu.Trim() : OwnerNameHy;
+        OwnerNameEn = !string.IsNullOrWhiteSpace(ownerNameEn) ? ownerNameEn.Trim() : string.Empty;
+        OwnerNameRu = !string.IsNullOrWhiteSpace(ownerNameRu) ? ownerNameRu.Trim() : string.Empty;
 
         OwnerPhoneNumber = !string.IsNullOrWhiteSpace(ownerPhoneNumber) ? ownerPhoneNumber.Trim() : PhoneNumber;
         OwnerPhone = OwnerPhoneNumber;
@@ -154,13 +154,13 @@ public class Salon
     {
         if (!string.IsNullOrWhiteSpace(name)) Name = name.Trim();
         NameHy = !string.IsNullOrWhiteSpace(nameHy) ? nameHy.Trim() : Name;
-        NameEn = !string.IsNullOrWhiteSpace(nameEn) ? nameEn.Trim() : NameHy;
-        NameRu = !string.IsNullOrWhiteSpace(nameRu) ? nameRu.Trim() : NameHy;
+        NameEn = !string.IsNullOrWhiteSpace(nameEn) ? nameEn.Trim() : string.Empty;
+        NameRu = !string.IsNullOrWhiteSpace(nameRu) ? nameRu.Trim() : string.Empty;
 
         if (!string.IsNullOrWhiteSpace(address)) Address = address.Trim();
         AddressHy = !string.IsNullOrWhiteSpace(addressHy) ? addressHy.Trim() : Address;
-        AddressEn = !string.IsNullOrWhiteSpace(addressEn) ? addressEn.Trim() : AddressHy;
-        AddressRu = !string.IsNullOrWhiteSpace(addressRu) ? addressRu.Trim() : AddressHy;
+        AddressEn = !string.IsNullOrWhiteSpace(addressEn) ? addressEn.Trim() : string.Empty;
+        AddressRu = !string.IsNullOrWhiteSpace(addressRu) ? addressRu.Trim() : string.Empty;
 
         if (!string.IsNullOrWhiteSpace(phoneNumber)) PhoneNumber = phoneNumber.Trim();
         if (!string.IsNullOrWhiteSpace(category)) Category = category.Trim();
@@ -168,17 +168,17 @@ public class Salon
         Email = email?.Trim() ?? Email;
 
         Description = description?.Trim() ?? Description;
-        DescriptionHy = !string.IsNullOrWhiteSpace(descriptionHy) ? descriptionHy.Trim() : Description;
-        DescriptionEn = !string.IsNullOrWhiteSpace(descriptionEn) ? descriptionEn.Trim() : DescriptionHy;
-        DescriptionRu = !string.IsNullOrWhiteSpace(descriptionRu) ? descriptionRu.Trim() : DescriptionHy;
+        DescriptionHy = !string.IsNullOrWhiteSpace(descriptionHy) ? descriptionHy.Trim() : (description?.Trim() ?? string.Empty);
+        DescriptionEn = !string.IsNullOrWhiteSpace(descriptionEn) ? descriptionEn.Trim() : string.Empty;
+        DescriptionRu = !string.IsNullOrWhiteSpace(descriptionRu) ? descriptionRu.Trim() : string.Empty;
 
         LogoUrl = logoUrl?.Trim() ?? LogoUrl;
         if (!string.IsNullOrWhiteSpace(ownerFullName)) OwnerFullName = ownerFullName.Trim();
         OwnerName = OwnerFullName;
 
         OwnerNameHy = !string.IsNullOrWhiteSpace(ownerNameHy) ? ownerNameHy.Trim() : OwnerFullName;
-        OwnerNameEn = !string.IsNullOrWhiteSpace(ownerNameEn) ? ownerNameEn.Trim() : OwnerNameHy;
-        OwnerNameRu = !string.IsNullOrWhiteSpace(ownerNameRu) ? ownerNameRu.Trim() : OwnerNameHy;
+        OwnerNameEn = !string.IsNullOrWhiteSpace(ownerNameEn) ? ownerNameEn.Trim() : string.Empty;
+        OwnerNameRu = !string.IsNullOrWhiteSpace(ownerNameRu) ? ownerNameRu.Trim() : string.Empty;
 
         if (!string.IsNullOrWhiteSpace(ownerPhoneNumber)) OwnerPhoneNumber = ownerPhoneNumber.Trim();
         if (!string.IsNullOrWhiteSpace(taxId)) TaxId = taxId.Trim();

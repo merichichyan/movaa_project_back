@@ -64,16 +64,16 @@ public class Specialist
         Id = Guid.NewGuid();
         Name = name.Trim();
         NameHy = !string.IsNullOrWhiteSpace(nameHy) ? nameHy.Trim() : name.Trim();
-        NameEn = !string.IsNullOrWhiteSpace(nameEn) ? nameEn.Trim() : NameHy;
-        NameRu = !string.IsNullOrWhiteSpace(nameRu) ? nameRu.Trim() : NameHy;
+        NameEn = !string.IsNullOrWhiteSpace(nameEn) ? nameEn.Trim() : string.Empty;
+        NameRu = !string.IsNullOrWhiteSpace(nameRu) ? nameRu.Trim() : string.Empty;
 
         Category = category.Trim();
         Phone = phone.Trim();
 
         JobTitle = jobTitle?.Trim();
-        JobTitleHy = !string.IsNullOrWhiteSpace(jobTitleHy) ? jobTitleHy.Trim() : JobTitle;
-        JobTitleEn = !string.IsNullOrWhiteSpace(jobTitleEn) ? jobTitleEn.Trim() : JobTitleHy;
-        JobTitleRu = !string.IsNullOrWhiteSpace(jobTitleRu) ? jobTitleRu.Trim() : JobTitleHy;
+        JobTitleHy = !string.IsNullOrWhiteSpace(jobTitleHy) ? jobTitleHy.Trim() : (jobTitle?.Trim() ?? string.Empty);
+        JobTitleEn = !string.IsNullOrWhiteSpace(jobTitleEn) ? jobTitleEn.Trim() : string.Empty;
+        JobTitleRu = !string.IsNullOrWhiteSpace(jobTitleRu) ? jobTitleRu.Trim() : string.Empty;
 
         Email = email?.Trim();
         SalonId = salonId;
@@ -81,9 +81,9 @@ public class Specialist
         AvatarUrl = avatarUrl?.Trim();
 
         Bio = bio?.Trim();
-        BioHy = !string.IsNullOrWhiteSpace(bioHy) ? bioHy.Trim() : Bio;
-        BioEn = !string.IsNullOrWhiteSpace(bioEn) ? bioEn.Trim() : BioHy;
-        BioRu = !string.IsNullOrWhiteSpace(bioRu) ? bioRu.Trim() : BioHy;
+        BioHy = !string.IsNullOrWhiteSpace(bioHy) ? bioHy.Trim() : (bio?.Trim() ?? string.Empty);
+        BioEn = !string.IsNullOrWhiteSpace(bioEn) ? bioEn.Trim() : string.Empty;
+        BioRu = !string.IsNullOrWhiteSpace(bioRu) ? bioRu.Trim() : string.Empty;
 
         ExperienceYears = experienceYears;
         WorkingHours = workingHours?.Trim();
@@ -119,16 +119,16 @@ public class Specialist
     {
         Name = name.Trim();
         NameHy = !string.IsNullOrWhiteSpace(nameHy) ? nameHy.Trim() : name.Trim();
-        NameEn = !string.IsNullOrWhiteSpace(nameEn) ? nameEn.Trim() : NameHy;
-        NameRu = !string.IsNullOrWhiteSpace(nameRu) ? nameRu.Trim() : NameHy;
+        NameEn = !string.IsNullOrWhiteSpace(nameEn) ? nameEn.Trim() : string.Empty;
+        NameRu = !string.IsNullOrWhiteSpace(nameRu) ? nameRu.Trim() : string.Empty;
 
         Category = category.Trim();
         Phone = phone.Trim();
 
         JobTitle = jobTitle?.Trim();
-        JobTitleHy = !string.IsNullOrWhiteSpace(jobTitleHy) ? jobTitleHy.Trim() : JobTitle;
-        JobTitleEn = !string.IsNullOrWhiteSpace(jobTitleEn) ? jobTitleEn.Trim() : JobTitleHy;
-        JobTitleRu = !string.IsNullOrWhiteSpace(jobTitleRu) ? jobTitleRu.Trim() : JobTitleHy;
+        JobTitleHy = !string.IsNullOrWhiteSpace(jobTitleHy) ? jobTitleHy.Trim() : (jobTitle?.Trim() ?? string.Empty);
+        JobTitleEn = !string.IsNullOrWhiteSpace(jobTitleEn) ? jobTitleEn.Trim() : string.Empty;
+        JobTitleRu = !string.IsNullOrWhiteSpace(jobTitleRu) ? jobTitleRu.Trim() : string.Empty;
 
         Email = email?.Trim();
         SalonId = salonId;
@@ -136,9 +136,9 @@ public class Specialist
         AvatarUrl = avatarUrl?.Trim();
 
         Bio = bio?.Trim();
-        BioHy = !string.IsNullOrWhiteSpace(bioHy) ? bioHy.Trim() : Bio;
-        BioEn = !string.IsNullOrWhiteSpace(bioEn) ? bioEn.Trim() : BioHy;
-        BioRu = !string.IsNullOrWhiteSpace(bioRu) ? bioRu.Trim() : BioHy;
+        BioHy = !string.IsNullOrWhiteSpace(bioHy) ? bioHy.Trim() : (bio?.Trim() ?? string.Empty);
+        BioEn = !string.IsNullOrWhiteSpace(bioEn) ? bioEn.Trim() : string.Empty;
+        BioRu = !string.IsNullOrWhiteSpace(bioRu) ? bioRu.Trim() : string.Empty;
 
         ExperienceYears = experienceYears;
         WorkingHours = workingHours?.Trim();
