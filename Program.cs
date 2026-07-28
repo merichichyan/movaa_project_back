@@ -119,14 +119,14 @@ using (var scope = app.Services.CreateScope())
         try
         {
             dbContext.Database.ExecuteSqlRaw(@"
-                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Phone"" text;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""PhoneNumber"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Name"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Address"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Email"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Description"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""LogoUrl"" text;
-                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
-                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerFullName"" text;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhoneNumber"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Rating"" double precision DEFAULT 5.0;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""ReviewCount"" integer DEFAULT 0;

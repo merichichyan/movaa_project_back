@@ -39,13 +39,24 @@ namespace movaa_project_back.Data
 
             modelBuilder.Entity<Salon>(entity =>
             {
+                entity.ToTable("Salons");
                 entity.HasKey(s => s.Id);
-                entity.Property(s => s.Name).IsRequired().HasMaxLength(150);
-                entity.Property(s => s.Address).IsRequired().HasMaxLength(250);
-                entity.Property(s => s.Phone).IsRequired().HasMaxLength(50);
-                entity.Property(s => s.OwnerName).HasMaxLength(150);
-                entity.Property(s => s.OwnerPhone).HasMaxLength(50);
-                entity.Property(s => s.TaxId).HasMaxLength(50);
+                entity.Property(s => s.Name).HasColumnName("Name").IsRequired().HasMaxLength(150);
+                entity.Property(s => s.Address).HasColumnName("Address").IsRequired().HasMaxLength(250);
+                entity.Property(s => s.PhoneNumber).HasColumnName("PhoneNumber").IsRequired().HasMaxLength(50);
+                entity.Property(s => s.OwnerFullName).HasColumnName("OwnerFullName").HasMaxLength(150);
+                entity.Property(s => s.OwnerPhoneNumber).HasColumnName("OwnerPhoneNumber").HasMaxLength(50);
+                entity.Property(s => s.TaxId).HasColumnName("TaxId").HasMaxLength(50);
+                entity.Property(s => s.LogoUrl).HasColumnName("LogoUrl");
+                entity.Property(s => s.Description).HasColumnName("Description");
+                entity.Property(s => s.Email).HasColumnName("Email");
+                entity.Property(s => s.IsBlocked).HasColumnName("IsBlocked");
+                entity.Property(s => s.CreatedAt).HasColumnName("CreatedAt");
+                entity.Property(s => s.UpdatedAt).HasColumnName("UpdatedAt");
+
+                entity.Ignore(s => s.Phone);
+                entity.Ignore(s => s.OwnerName);
+                entity.Ignore(s => s.OwnerPhone);
             });
 
             modelBuilder.Entity<Specialist>(entity =>

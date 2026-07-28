@@ -103,8 +103,8 @@ public static class AdminEndpoints
                 {
                     await dbContext.Database.ExecuteSqlRawAsync(@"
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
-                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
-                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerFullName"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhoneNumber"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
                     ", ct);
                     var retrySalons = await dbContext.Salons.OrderByDescending(s => s.CreatedAt).ToListAsync(ct);
@@ -120,9 +120,13 @@ public static class AdminEndpoints
 
         adminGroup.MapPost("/salons", async ([FromBody] CreateSalonDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
-            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Address) || string.IsNullOrWhiteSpace(dto.Phone))
+            var phoneVal = !string.IsNullOrWhiteSpace(dto.PhoneNumber) ? dto.PhoneNumber : dto.Phone;
+            var ownerPhoneVal = !string.IsNullOrWhiteSpace(dto.OwnerPhoneNumber) ? dto.OwnerPhoneNumber : dto.OwnerPhone;
+            var ownerNameVal = !string.IsNullOrWhiteSpace(dto.OwnerFullName) ? dto.OwnerFullName : dto.OwnerName;
+
+            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Address) || string.IsNullOrWhiteSpace(phoneVal))
             {
-                return Results.BadRequest(new { message = "Name, address, and phone are required." });
+                return Results.BadRequest(new { message = "Name, address, and phone number are required." });
             }
 
             var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
@@ -131,12 +135,12 @@ public static class AdminEndpoints
             var salon = new Salon(
                 name: dto.Name,
                 address: dto.Address,
-                phone: dto.Phone,
+                phoneNumber: phoneVal,
                 email: dto.Email,
                 description: dto.Description,
                 logoUrl: savedLogoUrl,
-                ownerName: dto.OwnerName,
-                ownerPhone: dto.OwnerPhone,
+                ownerFullName: ownerNameVal,
+                ownerPhoneNumber: ownerPhoneVal,
                 taxId: dto.TaxId
             );
 
@@ -154,14 +158,14 @@ public static class AdminEndpoints
                 try
                 {
                     await dbContext.Database.ExecuteSqlRawAsync(@"
-                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Phone"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""PhoneNumber"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Name"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Address"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Email"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Description"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""LogoUrl"" text;
-                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
-                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerFullName"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhoneNumber"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
                     ", ct);
@@ -185,15 +189,19 @@ public static class AdminEndpoints
             var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
             var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
 
+            var phoneVal = !string.IsNullOrWhiteSpace(dto.PhoneNumber) ? dto.PhoneNumber : dto.Phone;
+            var ownerPhoneVal = !string.IsNullOrWhiteSpace(dto.OwnerPhoneNumber) ? dto.OwnerPhoneNumber : dto.OwnerPhone;
+            var ownerNameVal = !string.IsNullOrWhiteSpace(dto.OwnerFullName) ? dto.OwnerFullName : dto.OwnerName;
+
             salon.Update(
                 name: dto.Name,
                 address: dto.Address,
-                phone: dto.Phone,
+                phoneNumber: phoneVal ?? salon.PhoneNumber,
                 email: dto.Email,
                 description: dto.Description,
                 logoUrl: savedLogoUrl,
-                ownerName: dto.OwnerName,
-                ownerPhone: dto.OwnerPhone,
+                ownerFullName: ownerNameVal,
+                ownerPhoneNumber: ownerPhoneVal,
                 taxId: dto.TaxId
             );
 
@@ -211,8 +219,8 @@ public static class AdminEndpoints
                 {
                     await dbContext.Database.ExecuteSqlRawAsync(@"
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
-                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
-                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerFullName"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhoneNumber"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
                     ", ct);
 

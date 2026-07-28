@@ -11,24 +11,30 @@ public record BlockToggleDto(
 public record CreateSalonDto(
     string Name,
     string Address,
-    string Phone,
+    string? Phone,
+    string? PhoneNumber,
     string? Email,
     string? Description,
     string? LogoUrl,
     string? OwnerName,
+    string? OwnerFullName,
     string? OwnerPhone,
+    string? OwnerPhoneNumber,
     string? TaxId
 );
 
 public record UpdateSalonDto(
     string Name,
     string Address,
-    string Phone,
+    string? Phone,
+    string? PhoneNumber,
     string? Email,
     string? Description,
     string? LogoUrl,
     string? OwnerName,
+    string? OwnerFullName,
     string? OwnerPhone,
+    string? OwnerPhoneNumber,
     string? TaxId
 );
 
