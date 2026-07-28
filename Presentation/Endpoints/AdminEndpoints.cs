@@ -21,11 +21,15 @@ public static class AdminEndpoints
                 .Select(u => new
                 {
                     u.Id,
+                    u.Phone,
                     u.FullName,
-                    u.PhoneNumber,
                     u.Email,
+                    u.Role,
+                    u.Status,
                     u.IsBlocked,
-                    u.CreatedAt
+                    u.IsOnboardingCompleted,
+                    u.CreatedAt,
+                    u.UpdatedAt
                 })
                 .ToListAsync(ct);
 
