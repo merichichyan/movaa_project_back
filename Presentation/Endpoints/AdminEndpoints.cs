@@ -154,10 +154,16 @@ public static class AdminEndpoints
                 try
                 {
                     await dbContext.Database.ExecuteSqlRawAsync(@"
-                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Phone"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Name"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Address"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Email"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Description"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""LogoUrl"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
                     ", ct);
 
                     await dbContext.SaveChangesAsync(ct);
