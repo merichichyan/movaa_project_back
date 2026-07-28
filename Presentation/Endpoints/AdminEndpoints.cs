@@ -68,11 +68,19 @@ public static class AdminEndpoints
         // ------------------ SALONS MANAGEMENT ------------------
         adminGroup.MapGet("/salons", async (AppDbContext dbContext, CancellationToken ct) =>
         {
-            var salons = await dbContext.Salons
-                .OrderByDescending(s => s.CreatedAt)
-                .ToListAsync(ct);
+            try
+            {
+                var salons = await dbContext.Salons
+                    .OrderByDescending(s => s.CreatedAt)
+                    .ToListAsync(ct);
 
-            return Results.Ok(salons);
+                return Results.Ok(salons);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching salons from database: {ex}");
+                return Results.Problem(detail: $"Database error: {ex.Message}", statusCode: 500);
+            }
         })
         .WithSummary("Get all salons");
 
@@ -209,21 +217,37 @@ public static class AdminEndpoints
 
         publicGroup.MapGet("/salons", async (AppDbContext dbContext, CancellationToken ct) =>
         {
-            var activeSalons = await dbContext.Salons
-                .Where(s => !s.IsBlocked)
-                .OrderByDescending(s => s.Rating)
-                .ToListAsync(ct);
-            return Results.Ok(activeSalons);
+            try
+            {
+                var activeSalons = await dbContext.Salons
+                    .Where(s => !s.IsBlocked)
+                    .OrderByDescending(s => s.Rating)
+                    .ToListAsync(ct);
+                return Results.Ok(activeSalons);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching public salons: {ex}");
+                return Results.Problem(detail: ex.Message, statusCode: 500);
+            }
         })
         .WithSummary("Get active salons for user app");
 
         publicGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct) =>
         {
-            var activeSpecialists = await dbContext.Specialists
-                .Where(sp => !sp.IsBlocked)
-                .OrderByDescending(sp => sp.Rating)
-                .ToListAsync(ct);
-            return Results.Ok(activeSpecialists);
+            try
+            {
+                var activeSpecialists = await dbContext.Specialists
+                    .Where(sp => !sp.IsBlocked)
+                    .OrderByDescending(sp => sp.Rating)
+                    .ToListAsync(ct);
+                return Results.Ok(activeSpecialists);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching public specialists: {ex}");
+                return Results.Problem(detail: ex.Message, statusCode: 500);
+            }
         })
         .WithSummary("Get active specialists for user app");
 

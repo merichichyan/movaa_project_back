@@ -103,6 +103,23 @@ using (var scope = app.Services.CreateScope())
     {
         dbContext.Database.EnsureCreated();
 
+        // Ensure missing columns are dynamically added to existing PostgreSQL tables
+        try
+        {
+            dbContext.Database.ExecuteSqlRaw(@"
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
+                ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""SalonName"" text;
+                ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsOnboardingCompleted"" boolean DEFAULT false;
+            ");
+        }
+        catch (Exception migrationEx)
+        {
+            Console.WriteLine($"DB Auto-Migration notice: {migrationEx.Message}");
+        }
+
         // Seed default Admin account if not existing in Users table
         var adminPhone = "merichichyan";
         var existingAdmin = dbContext.Users.FirstOrDefault(u => u.Phone == adminPhone);
@@ -119,8 +136,6 @@ using (var scope = app.Services.CreateScope())
             dbContext.SaveChanges();
             Console.WriteLine("Seeded Admin user 'merichichyan' in Users table successfully.");
         }
-
-
     }
     catch (Exception ex)
     {
