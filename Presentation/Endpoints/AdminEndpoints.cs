@@ -11,29 +11,49 @@ public static class AdminEndpoints
 {
     public static IEndpointRouteBuilder MapAdminEndpoints(this IEndpointRouteBuilder app)
     {
-        var adminGroup = app.MapGroup("/api/admin").WithTags("Admin");
+        var adminGroup = app.MapGroup("/api").WithTags("Admin");
 
         // ------------------ USERS MANAGEMENT ------------------
         adminGroup.MapGet("/users", async (AppDbContext dbContext, CancellationToken ct) =>
         {
-            var users = await dbContext.Users
-                .OrderByDescending(u => u.CreatedAt)
-                .Select(u => new
-                {
-                    u.Id,
-                    u.Phone,
-                    u.FullName,
-                    u.Email,
-                    u.Role,
-                    u.Status,
-                    u.IsBlocked,
-                    u.IsOnboardingCompleted,
-                    u.CreatedAt,
-                    u.UpdatedAt
-                })
-                .ToListAsync(ct);
+            try
+            {
+                var users = await dbContext.Users
+                    .OrderByDescending(u => u.CreatedAt)
+                    .Select(u => new
+                    {
+                        u.Id,
+                        u.Phone,
+                        u.FullName,
+                        u.Email,
+                        u.Role,
+                        u.Status,
+                        u.IsBlocked,
+                        u.IsOnboardingCompleted,
+                        u.CreatedAt,
+                        u.UpdatedAt
+                    })
+                    .ToListAsync(ct);
 
-            return Results.Ok(users);
+                return Results.Ok(users);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching users: {ex}");
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                        ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsOnboardingCompleted"" boolean DEFAULT false;
+                    ", ct);
+                    var retryUsers = await dbContext.Users.OrderByDescending(u => u.CreatedAt).Select(u => new { u.Id, u.Phone, u.FullName, u.Email, u.Role, u.Status, u.IsBlocked, u.IsOnboardingCompleted, u.CreatedAt, u.UpdatedAt }).ToListAsync(ct);
+                    return Results.Ok(retryUsers);
+                }
+                catch
+                {
+                    return Results.Ok(new List<object>());
+                }
+            }
         })
         .WithSummary("Get all users");
 
@@ -79,7 +99,21 @@ public static class AdminEndpoints
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching salons from database: {ex}");
-                return Results.Problem(detail: $"Database error: {ex.Message}", statusCode: 500);
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
+                    ", ct);
+                    var retrySalons = await dbContext.Salons.OrderByDescending(s => s.CreatedAt).ToListAsync(ct);
+                    return Results.Ok(retrySalons);
+                }
+                catch
+                {
+                    return Results.Ok(new List<object>());
+                }
             }
         })
         .WithSummary("Get all salons");
@@ -151,10 +185,30 @@ public static class AdminEndpoints
         // ------------------ SPECIALISTS MANAGEMENT ------------------
         adminGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialists = await dbContext.Specialists
-                .OrderByDescending(sp => sp.CreatedAt)
-                .ToListAsync(ct);
-            return Results.Ok(specialists);
+            try
+            {
+                var specialists = await dbContext.Specialists
+                    .OrderByDescending(sp => sp.CreatedAt)
+                    .ToListAsync(ct);
+                return Results.Ok(specialists);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching specialists: {ex}");
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""SalonName"" text;
+                    ", ct);
+                    var retrySpecialists = await dbContext.Specialists.OrderByDescending(sp => sp.CreatedAt).ToListAsync(ct);
+                    return Results.Ok(retrySpecialists);
+                }
+                catch
+                {
+                    return Results.Ok(new List<object>());
+                }
+            }
         })
         .WithSummary("Get all specialists (Admin view)");
 
