@@ -30,6 +30,7 @@ public class Specialist
     public int ExperienceYears { get; private set; } = 0;
     public string? WorkingHours { get; private set; }
     public double CommissionRate { get; private set; } = 0.0;
+    public string ServicesJson { get; private set; } = "[]";
     public bool IsBlocked { get; private set; } = false;
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -58,6 +59,7 @@ public class Specialist
         int experienceYears = 0,
         string? workingHours = null,
         double commissionRate = 0.0,
+        string? servicesJson = null,
         double rating = 5.0,
         int reviewCount = 0)
     {
@@ -88,6 +90,7 @@ public class Specialist
         ExperienceYears = experienceYears;
         WorkingHours = workingHours?.Trim();
         CommissionRate = commissionRate;
+        ServicesJson = !string.IsNullOrWhiteSpace(servicesJson) ? servicesJson.Trim() : "[]";
         Rating = rating;
         ReviewCount = reviewCount;
         IsBlocked = false;
@@ -115,7 +118,8 @@ public class Specialist
         string? bioRu,
         int experienceYears,
         string? workingHours,
-        double commissionRate)
+        double commissionRate,
+        string? servicesJson = null)
     {
         Name = name.Trim();
         NameHy = !string.IsNullOrWhiteSpace(nameHy) ? nameHy.Trim() : name.Trim();
@@ -143,6 +147,10 @@ public class Specialist
         ExperienceYears = experienceYears;
         WorkingHours = workingHours?.Trim();
         CommissionRate = commissionRate;
+        if (!string.IsNullOrWhiteSpace(servicesJson))
+        {
+            ServicesJson = servicesJson.Trim();
+        }
         UpdatedAt = DateTime.UtcNow;
     }
 

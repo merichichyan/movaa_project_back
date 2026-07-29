@@ -409,7 +409,8 @@ public static class AdminEndpoints
                 bioRu: dto.BioRu,
                 experienceYears: dto.ExperienceYears ?? 0,
                 workingHours: dto.WorkingHours,
-                commissionRate: dto.CommissionRate ?? 0.0
+                commissionRate: dto.CommissionRate ?? 0.0,
+                servicesJson: dto.ServicesJson
             );
 
             try
@@ -440,6 +441,7 @@ public static class AdminEndpoints
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ExperienceYears"" integer DEFAULT 0;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CommissionRate"" double precision DEFAULT 0.0;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ServicesJson"" text DEFAULT '[]';
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
                     ", ct);
 
@@ -483,7 +485,8 @@ public static class AdminEndpoints
                 bioRu: dto.BioRu,
                 experienceYears: dto.ExperienceYears ?? 0,
                 workingHours: dto.WorkingHours,
-                commissionRate: dto.CommissionRate ?? 0.0
+                commissionRate: dto.CommissionRate ?? 0.0,
+                servicesJson: dto.ServicesJson
             );
 
             try
@@ -491,6 +494,20 @@ public static class AdminEndpoints
                 await dbContext.SaveChangesAsync(ct);
                 return Results.Ok(specialist);
             }
+            catch (Exception ex)
+            {
+                var innerMessage = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                Console.WriteLine($"Error updating specialist: {ex} -> {innerMessage}");
+
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ServicesJson"" text DEFAULT '[]';
+                    ", ct);
+
+                    await dbContext.SaveChangesAsync(ct);
+                    return Results.Ok(specialist);
+                }
             catch (Exception ex)
             {
                 var innerMessage = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
