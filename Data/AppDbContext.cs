@@ -14,10 +14,18 @@ namespace movaa_project_back.Data
         public DbSet<Salon> Salons => Set<Salon>();
         public DbSet<Specialist> Specialists => Set<Specialist>();
         public DbSet<Category> Categories => Set<Category>();
+        public DbSet<Offer> Offers => Set<Offer>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Offer>(entity =>
+            {
+                entity.ToTable("Offers");
+                entity.HasKey(o => o.Id);
+                entity.Property(o => o.Title).IsRequired().HasMaxLength(200);
+            });
 
             modelBuilder.Entity<Admin>(entity =>
             {

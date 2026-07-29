@@ -169,6 +169,31 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""Phone"" text;
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsOnboardingCompleted"" boolean DEFAULT false;
+
+                CREATE TABLE IF NOT EXISTS ""Offers"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""Title"" text NOT NULL,
+                    ""TitleHy"" text,
+                    ""TitleEn"" text,
+                    ""TitleRu"" text,
+                    ""Subtitle"" text,
+                    ""SubtitleHy"" text,
+                    ""SubtitleEn"" text,
+                    ""SubtitleRu"" text,
+                    ""BadgeText"" text,
+                    ""BadgeTextHy"" text,
+                    ""BadgeTextEn"" text,
+                    ""BadgeTextRu"" text,
+                    ""DiscountPercent"" double precision,
+                    ""SalonId"" uuid,
+                    ""SalonName"" text,
+                    ""SpecialistId"" uuid,
+                    ""SpecialistName"" text,
+                    ""ImageUrl"" text,
+                    ""IsActive"" boolean DEFAULT true,
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
             ");
         }
         catch (Exception migrationEx)
@@ -280,6 +305,7 @@ app.UseAuthorization();
 // Map API Routes
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();
+app.MapOfferEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new
