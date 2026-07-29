@@ -322,6 +322,7 @@ public static class AdminEndpoints
                         sp.ExperienceYears,
                         sp.WorkingHours,
                         sp.CommissionRate,
+                        sp.ServicesJson,
                         sp.Rating,
                         sp.ReviewCount,
                         sp.IsBlocked,
@@ -342,6 +343,7 @@ public static class AdminEndpoints
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ExperienceYears"" integer DEFAULT 0;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CommissionRate"" double precision DEFAULT 0.0;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ServicesJson"" text DEFAULT '[]';
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
                     ", ct);
                     var retrySpecialists = await dbContext.Specialists
@@ -361,6 +363,7 @@ public static class AdminEndpoints
                             sp.ExperienceYears,
                             sp.WorkingHours,
                             sp.CommissionRate,
+                            sp.ServicesJson,
                             sp.Rating,
                             sp.ReviewCount,
                             sp.IsBlocked,
