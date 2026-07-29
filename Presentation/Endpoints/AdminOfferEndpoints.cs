@@ -135,8 +135,8 @@ public static class AdminOfferEndpoints
             return Results.Ok(offer);
         }
 
-        // Register routes under /api/offers
-        apiGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct) => await GetOffersHandler(dbContext, ct, activeOnly: false));
+        // Register routes under /api/offers (Public endpoint: activeOnly = true)
+        apiGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct) => await GetOffersHandler(dbContext, ct, activeOnly: true));
         apiGroup.MapPost("/offers", async ([FromBody] CreateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await CreateOfferHandler(dto, dbContext, ct));
         apiGroup.MapPut("/offers/{id:guid}", async (Guid id, [FromBody] UpdateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await UpdateOfferHandler(id, dto, dbContext, ct));
         apiGroup.MapDelete("/offers/{id:guid}", async (Guid id, AppDbContext dbContext, CancellationToken ct) => await DeleteOfferHandler(id, dbContext, ct));
