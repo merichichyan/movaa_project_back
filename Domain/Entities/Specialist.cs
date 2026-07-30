@@ -31,6 +31,7 @@ public class Specialist
     public string? WorkingHours { get; private set; }
     public double CommissionRate { get; private set; } = 0.0;
     public string ServicesJson { get; private set; } = "[]";
+    public string WorkplacesJson { get; private set; } = "[]";
     public bool IsBlocked { get; private set; } = false;
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -60,6 +61,7 @@ public class Specialist
         string? workingHours = null,
         double commissionRate = 0.0,
         string? servicesJson = null,
+        string? workplacesJson = null,
         double rating = 5.0,
         int reviewCount = 0)
     {
@@ -91,6 +93,7 @@ public class Specialist
         WorkingHours = workingHours?.Trim();
         CommissionRate = commissionRate;
         ServicesJson = !string.IsNullOrWhiteSpace(servicesJson) ? servicesJson.Trim() : "[]";
+        WorkplacesJson = !string.IsNullOrWhiteSpace(workplacesJson) ? workplacesJson.Trim() : "[]";
         Rating = rating;
         ReviewCount = reviewCount;
         IsBlocked = false;
@@ -119,7 +122,8 @@ public class Specialist
         int experienceYears,
         string? workingHours,
         double commissionRate,
-        string? servicesJson = null)
+        string? servicesJson = null,
+        string? workplacesJson = null)
     {
         Name = name.Trim();
         NameHy = !string.IsNullOrWhiteSpace(nameHy) ? nameHy.Trim() : name.Trim();
@@ -150,6 +154,10 @@ public class Specialist
         if (!string.IsNullOrWhiteSpace(servicesJson))
         {
             ServicesJson = servicesJson.Trim();
+        }
+        if (!string.IsNullOrWhiteSpace(workplacesJson))
+        {
+            WorkplacesJson = workplacesJson.Trim();
         }
         UpdatedAt = DateTime.UtcNow;
     }

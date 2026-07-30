@@ -88,7 +88,8 @@ public record CreateSpecialistDto(
     int? ExperienceYears,
     string? WorkingHours,
     double? CommissionRate,
-    string? ServicesJson
+    string? ServicesJson,
+    string? WorkplacesJson
 );
 
 public record UpdateSpecialistDto(
@@ -113,7 +114,8 @@ public record UpdateSpecialistDto(
     int? ExperienceYears,
     string? WorkingHours,
     double? CommissionRate,
-    string? ServicesJson
+    string? ServicesJson,
+    string? WorkplacesJson
 );
 
 public record CreateCategoryDto(

@@ -344,6 +344,7 @@ public static class AdminEndpoints
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CommissionRate"" double precision DEFAULT 0.0;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ServicesJson"" text DEFAULT '[]';
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkplacesJson"" text DEFAULT '[]';
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
                     ", ct);
                     var retrySpecialists = await dbContext.Specialists
@@ -364,6 +365,7 @@ public static class AdminEndpoints
                             sp.WorkingHours,
                             sp.CommissionRate,
                             sp.ServicesJson,
+                            sp.WorkplacesJson,
                             sp.Rating,
                             sp.ReviewCount,
                             sp.IsBlocked,
@@ -413,7 +415,8 @@ public static class AdminEndpoints
                 experienceYears: dto.ExperienceYears ?? 0,
                 workingHours: dto.WorkingHours,
                 commissionRate: dto.CommissionRate ?? 0.0,
-                servicesJson: dto.ServicesJson
+                servicesJson: dto.ServicesJson,
+                workplacesJson: dto.WorkplacesJson
             );
 
             try
@@ -445,6 +448,7 @@ public static class AdminEndpoints
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CommissionRate"" double precision DEFAULT 0.0;
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ServicesJson"" text DEFAULT '[]';
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkplacesJson"" text DEFAULT '[]';
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
                     ", ct);
 
@@ -489,7 +493,8 @@ public static class AdminEndpoints
                 experienceYears: dto.ExperienceYears ?? 0,
                 workingHours: dto.WorkingHours,
                 commissionRate: dto.CommissionRate ?? 0.0,
-                servicesJson: dto.ServicesJson
+                servicesJson: dto.ServicesJson,
+                workplacesJson: dto.WorkplacesJson
             );
 
             try
