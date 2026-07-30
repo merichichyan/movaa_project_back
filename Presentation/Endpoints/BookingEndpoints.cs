@@ -32,14 +32,11 @@ namespace movaa_project_back.Presentation.Endpoints
                 }
 
                 var specialist = await context.Specialists.FirstOrDefaultAsync(s => s.Id == request.SpecialistId, ct);
-                if (specialist == null)
-                {
-                    return Results.NotFound(new { message = "Specialist not found" });
-                }
+                var specName = specialist?.Name ?? request.SpecialistName ?? "Specialist";
 
                 var booking = new Booking(
                     request.SpecialistId,
-                    specialist.Name,
+                    specName,
                     request.ServiceName,
                     request.Price,
                     request.DurationMinutes,
@@ -145,6 +142,7 @@ namespace movaa_project_back.Presentation.Endpoints
         int DurationMinutes,
         DateTime BookingDate,
         string TimeSlot,
+        string? SpecialistName = null,
         Guid? SalonId = null,
         string? SalonName = null
     );
