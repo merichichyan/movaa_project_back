@@ -20,7 +20,7 @@ namespace movaa_project_back.Presentation.Endpoints
         {
             var favoritesGroup = app.MapGroup("/api/favorites").WithTags("Favorites");
 
-            favoritesGroup.MapGet("/", [Authorize] async (ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
+            favoritesGroup.MapGet("", [Authorize] async (ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
             {
                 var nameIdClaim = principal.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(nameIdClaim) || !Guid.TryParse(nameIdClaim, out var userId))

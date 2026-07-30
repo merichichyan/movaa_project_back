@@ -237,7 +237,7 @@ using (var scope = app.Services.CreateScope())
 
             dbContext.Database.ExecuteSqlRaw(@"
                 CREATE TABLE IF NOT EXISTS ""UserFavorites"" (
-                    ""Id"" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    ""Id"" UUID PRIMARY KEY,
                     ""UserId"" UUID NOT NULL,
                     ""TargetId"" TEXT NOT NULL,
                     ""Type"" TEXT NOT NULL,
