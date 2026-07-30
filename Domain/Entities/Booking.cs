@@ -40,7 +40,7 @@ namespace movaa_project_back.Domain.Entities
             ServiceName = serviceName;
             Price = price;
             DurationMinutes = durationMinutes;
-            BookingDate = bookingDate;
+            BookingDate = bookingDate.Kind == DateTimeKind.Utc ? bookingDate : DateTime.SpecifyKind(bookingDate, DateTimeKind.Utc);
             TimeSlot = timeSlot;
             UserId = userId;
             UserEmail = userEmail.ToLowerInvariant().Trim();
