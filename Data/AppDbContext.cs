@@ -16,6 +16,7 @@ namespace movaa_project_back.Data
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Offer> Offers => Set<Offer>();
         public DbSet<UserFavorite> UserFavorites => Set<UserFavorite>();
+        public DbSet<Booking> Bookings => Set<Booking>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

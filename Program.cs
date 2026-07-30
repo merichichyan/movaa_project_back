@@ -246,6 +246,25 @@ using (var scope = app.Services.CreateScope())
                 CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserFavorites_UserId_TargetId_Type"" ON ""UserFavorites"" (""UserId"", ""TargetId"", ""Type"");
             ");
 
+            dbContext.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""Bookings"" (
+                    ""Id"" UUID PRIMARY KEY,
+                    ""SpecialistId"" UUID NOT NULL,
+                    ""SpecialistName"" TEXT NOT NULL,
+                    ""ServiceName"" TEXT NOT NULL,
+                    ""Price"" NUMERIC NOT NULL,
+                    ""DurationMinutes"" INT NOT NULL,
+                    ""BookingDate"" TIMESTAMP WITH TIME ZONE NOT NULL,
+                    ""TimeSlot"" TEXT NOT NULL,
+                    ""UserId"" UUID NOT NULL,
+                    ""UserEmail"" TEXT NOT NULL,
+                    ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    ""IsNoShow"" BOOLEAN DEFAULT FALSE,
+                    ""SalonId"" UUID,
+                    ""SalonName"" TEXT
+                );
+            ");
+
             if (!dbContext.Categories.Any())
             {
                 var defaultCategories = new List<movaa_project_back.Domain.Entities.Category>
@@ -319,6 +338,7 @@ app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapOfferEndpoints();
 app.MapFavoritesEndpoints();
+app.MapBookingEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new
