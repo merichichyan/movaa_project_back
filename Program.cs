@@ -235,6 +235,17 @@ using (var scope = app.Services.CreateScope())
                 );
             ");
 
+            dbContext.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""UserFavorites"" (
+                    ""Id"" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    ""UserId"" UUID NOT NULL,
+                    ""TargetId"" TEXT NOT NULL,
+                    ""Type"" TEXT NOT NULL,
+                    ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserFavorites_UserId_TargetId_Type"" ON ""UserFavorites"" (""UserId"", ""TargetId"", ""Type"");
+            ");
+
             if (!dbContext.Categories.Any())
             {
                 var defaultCategories = new List<movaa_project_back.Domain.Entities.Category>
@@ -307,6 +318,7 @@ app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapOfferEndpoints();
+app.MapFavoritesEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new

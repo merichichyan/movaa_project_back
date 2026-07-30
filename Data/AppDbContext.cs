@@ -15,6 +15,7 @@ namespace movaa_project_back.Data
         public DbSet<Specialist> Specialists => Set<Specialist>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Offer> Offers => Set<Offer>();
+        public DbSet<UserFavorite> UserFavorites => Set<UserFavorite>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -82,6 +83,13 @@ namespace movaa_project_back.Data
                 entity.Property(sp => sp.Name).IsRequired().HasMaxLength(150);
                 entity.Property(sp => sp.Category).IsRequired().HasMaxLength(100);
                 entity.Property(sp => sp.Phone).IsRequired().HasMaxLength(50);
+            });
+
+            modelBuilder.Entity<UserFavorite>(entity =>
+            {
+                entity.ToTable("UserFavorites");
+                entity.HasKey(uf => uf.Id);
+                entity.HasIndex(uf => new { uf.UserId, uf.TargetId, uf.Type }).IsUnique();
             });
         }
     }
