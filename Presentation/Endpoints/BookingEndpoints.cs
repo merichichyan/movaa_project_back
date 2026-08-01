@@ -223,6 +223,17 @@ namespace movaa_project_back.Presentation.Endpoints
             })
             .WithSummary("Get specialist bookings");
 
+            group.MapGet("/salon/{salonId:guid}", async (Guid salonId, AppDbContext context, CancellationToken ct) =>
+            {
+                var bookings = await context.Bookings
+                                            .Where(b => b.SalonId == salonId && b.Status != "Cancelled" && b.Status != "Rejected")
+                                            .OrderByDescending(b => b.BookingDate)
+                                            .ToListAsync(ct);
+
+                return Results.Ok(bookings);
+            })
+            .WithSummary("Get salon bookings");
+
             group.MapDelete("/{id:guid}", [Authorize] async (Guid id, ClaimsPrincipal principal, AppDbContext context, CancellationToken ct) =>
             {
                 var userIdClaim = principal.FindFirstValue(ClaimTypes.NameIdentifier);
