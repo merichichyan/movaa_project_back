@@ -323,6 +323,7 @@ public static class AdminEndpoints
                         sp.WorkingHours,
                         sp.CommissionRate,
                         sp.ServicesJson,
+                        sp.WorkplacesJson,
                         sp.Rating,
                         sp.ReviewCount,
                         sp.IsBlocked,
