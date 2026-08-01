@@ -20,6 +20,7 @@ public record CreateOfferDto(
     string? SpecialistName,
     string? ImageUrl,
     string? ValidUntil,
+    int OrderIndex = 0,
     bool IsActive = true
 );
 
@@ -43,5 +44,10 @@ public record UpdateOfferDto(
     string? SpecialistName,
     string? ImageUrl,
     string? ValidUntil,
+    int OrderIndex = 0,
     bool IsActive = true
+);
+
+public record ReorderOfferDto(
+    List<Guid> OfferIds
 );

@@ -26,6 +26,7 @@ public class Offer
 
     public string? ImageUrl { get; private set; }
     public string? ValidUntil { get; private set; }
+    public int OrderIndex { get; private set; } = 0;
     public bool IsActive { get; private set; } = true;
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -52,6 +53,7 @@ public class Offer
         string? specialistName = null,
         string? imageUrl = null,
         string? validUntil = null,
+        int orderIndex = 0,
         bool isActive = true)
     {
         Id = Guid.NewGuid();
@@ -77,6 +79,7 @@ public class Offer
         SpecialistName = specialistName;
         ImageUrl = imageUrl;
         ValidUntil = validUntil;
+        OrderIndex = orderIndex;
         IsActive = isActive;
         CreatedAt = DateTime.UtcNow;
     }
@@ -101,6 +104,7 @@ public class Offer
         string? specialistName,
         string? imageUrl,
         string? validUntil,
+        int orderIndex,
         bool isActive)
     {
         Title = title;
@@ -125,7 +129,14 @@ public class Offer
         SpecialistName = specialistName;
         if (!string.IsNullOrWhiteSpace(imageUrl)) ImageUrl = imageUrl;
         ValidUntil = validUntil;
+        OrderIndex = orderIndex;
         IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetOrderIndex(int index)
+    {
+        OrderIndex = index;
         UpdatedAt = DateTime.UtcNow;
     }
 

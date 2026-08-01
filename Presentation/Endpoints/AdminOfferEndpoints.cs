@@ -24,7 +24,8 @@ public static class AdminOfferEndpoints
                 }
 
                 var offers = await query
-                    .OrderByDescending(o => o.CreatedAt)
+                    .OrderBy(o => o.OrderIndex)
+                    .ThenByDescending(o => o.CreatedAt)
                     .ToListAsync(ct);
                 return Results.Ok(offers);
             }
@@ -62,6 +63,7 @@ public static class AdminOfferEndpoints
                 specialistName: dto.SpecialistName,
                 imageUrl: dto.ImageUrl,
                 validUntil: dto.ValidUntil,
+                orderIndex: dto.OrderIndex,
                 isActive: dto.IsActive
             );
 
@@ -103,6 +105,7 @@ public static class AdminOfferEndpoints
                 specialistName: dto.SpecialistName,
                 imageUrl: dto.ImageUrl,
                 validUntil: dto.ValidUntil,
+                orderIndex: dto.OrderIndex,
                 isActive: dto.IsActive
             );
 
@@ -115,6 +118,24 @@ public static class AdminOfferEndpoints
             {
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
+        }
+
+        async Task<IResult> ReorderOffersHandler(ReorderOfferDto dto, AppDbContext dbContext, CancellationToken ct)
+        {
+            if (dto.OfferIds == null || dto.OfferIds.Count == 0) return Results.Ok();
+
+            for (int i = 0; i < dto.OfferIds.Count; i++)
+            {
+                var id = dto.OfferIds[i];
+                var offer = await dbContext.Offers.FirstOrDefaultAsync(o => o.Id == id, ct);
+                if (offer != null)
+                {
+                    offer.SetOrderIndex(i);
+                }
+            }
+
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Offers reordered successfully." });
         }
 
         async Task<IResult> DeleteOfferHandler(Guid id, AppDbContext dbContext, CancellationToken ct)
@@ -140,6 +161,7 @@ public static class AdminOfferEndpoints
         // Register routes under /api/offers (Public endpoint defaults to activeOnly = true)
         apiGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly) => await GetOffersHandler(dbContext, ct, activeOnly: activeOnly ?? true));
         apiGroup.MapPost("/offers", async ([FromBody] CreateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await CreateOfferHandler(dto, dbContext, ct));
+        apiGroup.MapPost("/offers/reorder", async ([FromBody] ReorderOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await ReorderOffersHandler(dto, dbContext, ct));
         apiGroup.MapPut("/offers/{id:guid}", async (Guid id, [FromBody] UpdateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await UpdateOfferHandler(id, dto, dbContext, ct));
         apiGroup.MapDelete("/offers/{id:guid}", async (Guid id, AppDbContext dbContext, CancellationToken ct) => await DeleteOfferHandler(id, dbContext, ct));
         apiGroup.MapPost("/offers/{id:guid}/toggle", async (Guid id, [FromBody] BlockToggleDto dto, AppDbContext dbContext, CancellationToken ct) => await ToggleOfferHandler(id, dto, dbContext, ct));
@@ -148,6 +170,7 @@ public static class AdminOfferEndpoints
         var adminGroup = apiGroup.MapGroup("/admin");
         adminGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct) => await GetOffersHandler(dbContext, ct, activeOnly: false));
         adminGroup.MapPost("/offers", async ([FromBody] CreateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await CreateOfferHandler(dto, dbContext, ct));
+        adminGroup.MapPost("/offers/reorder", async ([FromBody] ReorderOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await ReorderOffersHandler(dto, dbContext, ct));
         adminGroup.MapPut("/offers/{id:guid}", async (Guid id, [FromBody] UpdateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await UpdateOfferHandler(id, dto, dbContext, ct));
         adminGroup.MapDelete("/offers/{id:guid}", async (Guid id, AppDbContext dbContext, CancellationToken ct) => await DeleteOfferHandler(id, dbContext, ct));
         adminGroup.MapPost("/offers/{id:guid}/toggle", async (Guid id, [FromBody] BlockToggleDto dto, AppDbContext dbContext, CancellationToken ct) => await ToggleOfferHandler(id, dto, dbContext, ct));
