@@ -25,6 +25,7 @@ public class Offer
     public string? SpecialistName { get; private set; }
 
     public string? ImageUrl { get; private set; }
+    public string? ValidUntil { get; private set; }
     public bool IsActive { get; private set; } = true;
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -50,6 +51,7 @@ public class Offer
         Guid? specialistId = null,
         string? specialistName = null,
         string? imageUrl = null,
+        string? validUntil = null,
         bool isActive = true)
     {
         Id = Guid.NewGuid();
@@ -74,6 +76,7 @@ public class Offer
         SpecialistId = specialistId;
         SpecialistName = specialistName;
         ImageUrl = imageUrl;
+        ValidUntil = validUntil;
         IsActive = isActive;
         CreatedAt = DateTime.UtcNow;
     }
@@ -97,6 +100,7 @@ public class Offer
         Guid? specialistId,
         string? specialistName,
         string? imageUrl,
+        string? validUntil,
         bool isActive)
     {
         Title = title;
@@ -120,6 +124,7 @@ public class Offer
         SpecialistId = specialistId;
         SpecialistName = specialistName;
         if (!string.IsNullOrWhiteSpace(imageUrl)) ImageUrl = imageUrl;
+        ValidUntil = validUntil;
         IsActive = isActive;
         UpdatedAt = DateTime.UtcNow;
     }

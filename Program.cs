@@ -204,10 +204,13 @@ using (var scope = app.Services.CreateScope())
                     ""SpecialistId"" uuid,
                     ""SpecialistName"" text,
                     ""ImageUrl"" text,
+                    ""ValidUntil"" text,
                     ""IsActive"" boolean DEFAULT true,
                     ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
                     ""UpdatedAt"" timestamp with time zone
                 );
+
+                ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""ValidUntil"" text;
             ");
         }
         catch (Exception migrationEx)

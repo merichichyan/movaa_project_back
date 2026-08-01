@@ -61,6 +61,7 @@ public static class AdminOfferEndpoints
                 specialistId: dto.SpecialistId,
                 specialistName: dto.SpecialistName,
                 imageUrl: dto.ImageUrl,
+                validUntil: dto.ValidUntil,
                 isActive: dto.IsActive
             );
 
@@ -101,6 +102,7 @@ public static class AdminOfferEndpoints
                 specialistId: dto.SpecialistId,
                 specialistName: dto.SpecialistName,
                 imageUrl: dto.ImageUrl,
+                validUntil: dto.ValidUntil,
                 isActive: dto.IsActive
             );
 

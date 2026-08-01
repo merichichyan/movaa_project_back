@@ -19,6 +19,7 @@ public record CreateOfferDto(
     Guid? SpecialistId,
     string? SpecialistName,
     string? ImageUrl,
+    string? ValidUntil,
     bool IsActive = true
 );
 
@@ -41,5 +42,6 @@ public record UpdateOfferDto(
     Guid? SpecialistId,
     string? SpecialistName,
     string? ImageUrl,
+    string? ValidUntil,
     bool IsActive = true
 );
