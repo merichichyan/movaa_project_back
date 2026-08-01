@@ -17,6 +17,8 @@ namespace movaa_project_back.Data
         public DbSet<Offer> Offers => Set<Offer>();
         public DbSet<UserFavorite> UserFavorites => Set<UserFavorite>();
         public DbSet<Booking> Bookings => Set<Booking>();
+        public DbSet<SalonResource> SalonResources => Set<SalonResource>();
+        public DbSet<ServiceResource> ServiceResources => Set<ServiceResource>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -91,6 +93,35 @@ namespace movaa_project_back.Data
                 entity.ToTable("UserFavorites");
                 entity.HasKey(uf => uf.Id);
                 entity.HasIndex(uf => new { uf.UserId, uf.TargetId, uf.Type }).IsUnique();
+            });
+
+            modelBuilder.Entity<Booking>(entity =>
+            {
+                entity.HasIndex(b => new { b.SalonId, b.BookingDate });
+                entity.HasIndex(b => b.SpecialistId);
+            });
+
+            modelBuilder.Entity<SalonResource>(entity =>
+            {
+                entity.ToTable("SalonResources");
+                entity.HasKey(sr => sr.Id);
+                entity.Property(sr => sr.Name).IsRequired().HasMaxLength(150);
+                entity.Property(sr => sr.Quantity).IsRequired();
+                entity.Property(sr => sr.IsActive).IsRequired().HasDefaultValue(true);
+                entity.HasIndex(sr => sr.SalonId);
+            });
+
+            modelBuilder.Entity<ServiceResource>(entity =>
+            {
+                entity.ToTable("ServiceResources");
+                entity.HasKey(sr => sr.Id);
+                entity.Property(sr => sr.ServiceId).IsRequired().HasMaxLength(150);
+                entity.HasIndex(sr => sr.ServiceId);
+                entity.HasIndex(sr => sr.ResourceId);
+                entity.HasOne(sr => sr.Resource)
+                      .WithMany()
+                      .HasForeignKey(sr => sr.ResourceId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

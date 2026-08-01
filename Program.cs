@@ -264,6 +264,25 @@ using (var scope = app.Services.CreateScope())
                     ""SalonId"" UUID,
                     ""SalonName"" TEXT
                 );
+
+                CREATE TABLE IF NOT EXISTS ""SalonResources"" (
+                    ""Id"" UUID PRIMARY KEY,
+                    ""SalonId"" UUID NOT NULL,
+                    ""Name"" TEXT NOT NULL,
+                    ""Quantity"" INT NOT NULL,
+                    ""Description"" TEXT,
+                    ""IsActive"" BOOLEAN DEFAULT TRUE,
+                    ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    ""UpdatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                );
+
+                CREATE TABLE IF NOT EXISTS ""ServiceResources"" (
+                    ""Id"" UUID PRIMARY KEY,
+                    ""SalonId"" UUID NOT NULL,
+                    ""ServiceName"" TEXT NOT NULL,
+                    ""ResourceId"" UUID NOT NULL,
+                    ""RequiredQuantity"" INT DEFAULT 1
+                );
             ");
 
             if (!dbContext.Categories.Any())
@@ -340,6 +359,7 @@ app.MapAdminEndpoints();
 app.MapOfferEndpoints();
 app.MapFavoritesEndpoints();
 app.MapBookingEndpoints();
+app.MapResourceEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new
