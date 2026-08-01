@@ -172,6 +172,18 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsOnboardingCompleted"" boolean DEFAULT false;
 
+                ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""ServiceId"" text;
+                ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""Status"" text DEFAULT 'Confirmed';
+                ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""SalonId"" uuid;
+                ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""SalonName"" text;
+                ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""IsNoShow"" boolean DEFAULT false;
+
+                ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""ServiceId"" text;
+                ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""ServiceName"" text;
+                ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""SalonId"" uuid;
+                ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""ResourceId"" uuid;
+                ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""RequiredQuantity"" integer DEFAULT 1;
+
                 CREATE TABLE IF NOT EXISTS ""Offers"" (
                     ""Id"" uuid PRIMARY KEY,
                     ""Title"" text NOT NULL,
@@ -252,6 +264,7 @@ using (var scope = app.Services.CreateScope())
                     ""Id"" UUID PRIMARY KEY,
                     ""SpecialistId"" UUID NOT NULL,
                     ""SpecialistName"" TEXT NOT NULL,
+                    ""ServiceId"" TEXT,
                     ""ServiceName"" TEXT NOT NULL,
                     ""Price"" NUMERIC NOT NULL,
                     ""DurationMinutes"" INT NOT NULL,
@@ -261,6 +274,7 @@ using (var scope = app.Services.CreateScope())
                     ""UserEmail"" TEXT NOT NULL,
                     ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                     ""IsNoShow"" BOOLEAN DEFAULT FALSE,
+                    ""Status"" TEXT DEFAULT 'Confirmed',
                     ""SalonId"" UUID,
                     ""SalonName"" TEXT
                 );
