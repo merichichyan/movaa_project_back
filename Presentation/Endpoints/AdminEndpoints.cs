@@ -292,7 +292,7 @@ public static class AdminEndpoints
         .WithSummary("Block or unblock a salon");
 
         // ------------------ SPECIALISTS MANAGEMENT ------------------
-        adminGroup.MapGet("/specialists", async ([FromQuery] bool activeOnly = false, AppDbContext dbContext, CancellationToken ct) =>
+        adminGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool activeOnly = false) =>
         {
             try
             {
