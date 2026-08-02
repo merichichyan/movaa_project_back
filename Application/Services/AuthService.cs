@@ -226,4 +226,113 @@ public class AuthService : IAuthService
         user.CompleteOnboarding();
         await _userRepository.UpdateAsync(user, ct);
     }
+
+    public async Task<AuthResponseDto> ActivateSpecialistAccountAsync(SpecialistActivationRequestDto request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Phone))
+        {
+            throw new ArgumentException("Հեռախոսահամարը պարտադիր է:");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            throw new ArgumentException("Էլ․ հասցեն պարտադիր է:");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Trim().Length < 6)
+        {
+            throw new ArgumentException("Գաղտնաբառը պետք է լինի առնվազն 6 նիշ:");
+        }
+
+        var rawPhone = request.Phone.Trim();
+        var cleanDigits = System.Text.RegularExpressions.Regex.Replace(rawPhone, @"\D", "");
+        if (string.IsNullOrEmpty(cleanDigits))
+        {
+            throw new ArgumentException("Անվավեր հեռախոսահամար:");
+        }
+
+        var specialists = await _dbContext.Specialists.ToListAsync(ct);
+        var specialist = specialists.FirstOrDefault(s =>
+        {
+            var sDigits = System.Text.RegularExpressions.Regex.Replace(s.Phone ?? "", @"\D", "");
+            return sDigits.Equals(cleanDigits) || (cleanDigits.Length >= 8 && sDigits.EndsWith(cleanDigits.Substring(cleanDigits.Length - 8))) || (sDigits.Length >= 8 && cleanDigits.EndsWith(sDigits.Substring(sDigits.Length - 8)));
+        });
+
+        if (specialist == null)
+        {
+            throw new InvalidOperationException("Այս հեռախոսահամարով գրանցված մասնագետ չի գտնվել: Խնդրում ենք կապ հաստատել ադմինիստրատորի հետ:");
+        }
+
+        var phoneFormatted = cleanDigits.StartsWith("374") ? "+" + cleanDigits : "+374" + cleanDigits.TrimStart('0');
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password.Trim());
+        var userEmail = request.Email.Trim().ToLowerInvariant();
+
+        var existingUser = await _userRepository.GetByPhoneAsync(rawPhone, ct) 
+            ?? await _userRepository.GetByPhoneAsync(phoneFormatted, ct);
+
+        User user;
+        if (existingUser != null)
+        {
+            user = existingUser;
+            user.UpdatePasswordHash(passwordHash);
+            user.UpdateProfile(user.Phone, specialist.Name, userEmail, user.Gender, user.Birthday);
+            user.UpdateRole("specialist");
+            user.UpdateStatus("Verified");
+            await _userRepository.UpdateAsync(user, ct);
+        }
+        else
+        {
+            user = new User(
+                phone: phoneFormatted,
+                passwordHash: passwordHash,
+                fullName: specialist.Name,
+                role: "specialist",
+                email: userEmail
+            );
+            user.UpdateStatus("Verified");
+            await _userRepository.AddAsync(user, ct);
+        }
+
+        if (string.IsNullOrWhiteSpace(specialist.Email) || specialist.Email != userEmail)
+        {
+            specialist.Update(
+                specialist.Name,
+                specialist.Category,
+                specialist.Phone,
+                specialist.NameHy,
+                specialist.NameEn,
+                specialist.NameRu,
+                specialist.JobTitle,
+                specialist.JobTitleHy,
+                specialist.JobTitleEn,
+                specialist.JobTitleRu,
+                userEmail,
+                specialist.SalonId,
+                specialist.SalonName,
+                specialist.AvatarUrl,
+                specialist.Bio,
+                specialist.BioHy,
+                specialist.BioEn,
+                specialist.BioRu,
+                specialist.ExperienceYears,
+                specialist.WorkingHours,
+                specialist.CommissionRate,
+                specialist.ServicesJson,
+                specialist.WorkplacesJson
+            );
+            await _dbContext.SaveChangesAsync(ct);
+        }
+
+        var token = _tokenGenerator.GenerateToken(user);
+
+        return new AuthResponseDto(
+            Token: token,
+            Id: user.Id,
+            Phone: user.Phone,
+            Email: user.Email,
+            FullName: user.FullName,
+            Role: user.Role,
+            IsOnboardingCompleted: user.IsOnboardingCompleted
+        );
+    }
 }

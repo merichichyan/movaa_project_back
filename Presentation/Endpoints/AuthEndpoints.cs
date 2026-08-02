@@ -52,6 +52,25 @@ public static class AuthEndpoints
         .WithSummary("Register a client user")
         .WithDescription("Registers a client user with profile information and returns JWT authentication details.");
 
+        authGroup.MapPost("/activate-specialist", async ([FromBody] SpecialistActivationRequestDto request, IAuthService authService, CancellationToken ct) =>
+        {
+            try
+            {
+                var result = await authService.ActivateSpecialistAccountAsync(request, ct);
+                return Results.Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.Conflict(new { message = ex.Message });
+            }
+        })
+        .WithSummary("Activate specialist account")
+        .WithDescription("Activates a pre-registered specialist account with phone, email, and password.");
+
         authGroup.MapPost("/login", async ([FromBody] LoginRequestDto request, IAuthService authService, CancellationToken ct) =>
         {
             try

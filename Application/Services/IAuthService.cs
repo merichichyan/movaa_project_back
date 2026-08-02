@@ -9,4 +9,5 @@ public interface IAuthService
     Task<AuthResponseDto> AdminLoginAsync(AdminLoginRequestDto request, CancellationToken ct = default);
     Task SelectRoleAsync(SelectRoleRequestDto request, CancellationToken ct = default);
     Task CompleteOnboardingAsync(Guid userId, CancellationToken ct = default);
+    Task<AuthResponseDto> ActivateSpecialistAccountAsync(SpecialistActivationRequestDto request, CancellationToken ct = default);
 }
