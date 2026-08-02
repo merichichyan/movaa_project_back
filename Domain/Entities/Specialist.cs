@@ -33,6 +33,7 @@ public class Specialist
     public string ServicesJson { get; private set; } = "[]";
     public string WorkplacesJson { get; private set; } = "[]";
     public bool IsBlocked { get; private set; } = false;
+    public bool IsActivated { get; private set; } = false;
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
@@ -165,6 +166,12 @@ public class Specialist
     public void SetBlocked(bool isBlocked)
     {
         IsBlocked = isBlocked;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetActivated()
+    {
+        IsActivated = true;
         UpdatedAt = DateTime.UtcNow;
     }
 }

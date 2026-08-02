@@ -292,11 +292,19 @@ public static class AdminEndpoints
         .WithSummary("Block or unblock a salon");
 
         // ------------------ SPECIALISTS MANAGEMENT ------------------
-        adminGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct) =>
+        adminGroup.MapGet("/specialists", async ([FromQuery] bool activeOnly = false, AppDbContext dbContext, CancellationToken ct) =>
         {
             try
             {
-                var specialists = await dbContext.Specialists
+                var query = dbContext.Specialists.AsQueryable();
+
+                // When activeOnly=true (client view), only return specialists who have activated their account and are not blocked
+                if (activeOnly)
+                {
+                    query = query.Where(sp => sp.IsActivated && !sp.IsBlocked);
+                }
+
+                var specialists = await query
                     .OrderByDescending(sp => sp.CreatedAt)
                     .Select(sp => new
                     {
@@ -327,6 +335,7 @@ public static class AdminEndpoints
                         sp.Rating,
                         sp.ReviewCount,
                         sp.IsBlocked,
+                        sp.IsActivated,
                         sp.CreatedAt,
                         sp.UpdatedAt
                     })
@@ -347,8 +356,11 @@ public static class AdminEndpoints
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ServicesJson"" text DEFAULT '[]';
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkplacesJson"" text DEFAULT '[]';
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsActivated"" boolean DEFAULT false;
                     ", ct);
-                    var retrySpecialists = await dbContext.Specialists
+                    var retryQuery = dbContext.Specialists.AsQueryable();
+                    if (activeOnly) retryQuery = retryQuery.Where(sp => sp.IsActivated && !sp.IsBlocked);
+                    var retrySpecialists = await retryQuery
                         .OrderByDescending(sp => sp.CreatedAt)
                         .Select(sp => new
                         {
@@ -370,6 +382,7 @@ public static class AdminEndpoints
                             sp.Rating,
                             sp.ReviewCount,
                             sp.IsBlocked,
+                            sp.IsActivated,
                             sp.CreatedAt,
                             sp.UpdatedAt
                         })
@@ -382,7 +395,7 @@ public static class AdminEndpoints
                 }
             }
         })
-        .WithSummary("Get all specialists (Admin view)");
+        .WithSummary("Get specialists (Admin: all, Client: activeOnly=true for activated + unblocked only)");
 
         adminGroup.MapPost("/specialists", async ([FromBody] CreateSpecialistDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {

@@ -323,6 +323,10 @@ public class AuthService : IAuthService
             await _dbContext.SaveChangesAsync(ct);
         }
 
+        // Mark the specialist account as activated
+        specialist.SetActivated();
+        await _dbContext.SaveChangesAsync(ct);
+
         var token = _tokenGenerator.GenerateToken(user);
 
         return new AuthResponseDto(
