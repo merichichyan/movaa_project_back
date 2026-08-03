@@ -214,8 +214,9 @@ namespace movaa_project_back.Presentation.Endpoints
 
             group.MapGet("/specialist/{specialistId:guid}", async (Guid specialistId, AppDbContext context, CancellationToken ct) =>
             {
+                var cutoffDate = DateTime.UtcNow.AddDays(-90);
                 var bookings = await context.Bookings
-                                            .Where(b => b.SpecialistId == specialistId)
+                                            .Where(b => b.SpecialistId == specialistId && b.BookingDate >= cutoffDate)
                                             .OrderByDescending(b => b.BookingDate)
                                             .ToListAsync(ct);
 
