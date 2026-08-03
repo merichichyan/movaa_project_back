@@ -216,7 +216,7 @@ namespace movaa_project_back.Presentation.Endpoints
             {
                 var cutoffDate = DateTime.UtcNow.AddDays(-90);
                 var bookings = await context.Bookings
-                                            .Where(b => b.SpecialistId == specialistId && b.BookingDate >= cutoffDate)
+                                            .Where(b => b.SpecialistId == specialistId && b.BookingDate >= cutoffDate && b.Status != "Cancelled" && b.Status != "Rejected")
                                             .OrderByDescending(b => b.BookingDate)
                                             .ToListAsync(ct);
 
