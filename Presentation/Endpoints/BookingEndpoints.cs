@@ -208,6 +208,7 @@ namespace movaa_project_back.Presentation.Endpoints
                                             .OrderByDescending(b => b.BookingDate)
                                             .ToListAsync(ct);
 
+                await PopulateUserDetailsAsync(context, bookings, ct);
                 return Results.Ok(bookings);
             })
             .WithSummary("Get user bookings");
@@ -220,6 +221,7 @@ namespace movaa_project_back.Presentation.Endpoints
                                             .OrderByDescending(b => b.BookingDate)
                                             .ToListAsync(ct);
 
+                await PopulateUserDetailsAsync(context, bookings, ct);
                 return Results.Ok(bookings);
             })
             .WithSummary("Get specialist bookings");
@@ -231,6 +233,7 @@ namespace movaa_project_back.Presentation.Endpoints
                                             .OrderByDescending(b => b.BookingDate)
                                             .ToListAsync(ct);
 
+                await PopulateUserDetailsAsync(context, bookings, ct);
                 return Results.Ok(bookings);
             })
             .WithSummary("Get salon bookings");
@@ -262,6 +265,21 @@ namespace movaa_project_back.Presentation.Endpoints
             .WithSummary("Cancel a booking");
 
             return app;
+        }
+
+        static async Task PopulateUserDetailsAsync(AppDbContext context, List<Booking> bookings, CancellationToken ct)
+        {
+            if (bookings.Count == 0) return;
+            var userIds = bookings.Select(b => b.UserId).Distinct().ToList();
+            var users = await context.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, ct);
+            foreach (var b in bookings)
+            {
+                if (users.TryGetValue(b.UserId, out var u))
+                {
+                    b.UserName = u.FullName;
+                    b.UserPhone = u.Phone;
+                }
+            }
         }
     }
 

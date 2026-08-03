@@ -15,6 +15,13 @@ namespace movaa_project_back.Domain.Entities
         public string TimeSlot { get; private set; } = string.Empty;
         public Guid UserId { get; private set; }
         public string UserEmail { get; private set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public string? UserName { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public string? UserPhone { get; set; }
+
         public DateTime CreatedAt { get; private set; }
         public bool IsNoShow { get; private set; } = false;
         public string Status { get; private set; } = "Confirmed";
