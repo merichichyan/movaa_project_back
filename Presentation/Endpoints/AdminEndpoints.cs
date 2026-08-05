@@ -85,6 +85,66 @@ public static class AdminEndpoints
         })
         .WithSummary("Block or unblock a user");
 
+        adminGroup.MapPut("/users/{id:guid}", async (Guid id, [FromBody] UpdateUserDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+            if (user == null) return Results.NotFound(new { message = "User not found." });
+
+            var oldPhone = user.Phone;
+            var oldEmail = user.Email;
+
+            var cleanNewPhone = System.Text.RegularExpressions.Regex.Replace(dto.Phone ?? "", @"\D", "");
+            var formattedPhone = cleanNewPhone.StartsWith("374") ? "+" + cleanNewPhone : "+374" + cleanNewPhone.TrimStart('0');
+            var cleanEmail = dto.Email?.Trim().ToLowerInvariant();
+
+            user.UpdateProfile(formattedPhone, dto.FullName?.Trim() ?? user.FullName, cleanEmail, user.Gender, user.Birthday);
+
+            // Sync matching Specialist entity if exists
+            var specialists = await dbContext.Specialists.ToListAsync(ct);
+            var cleanOldPhoneDigits = System.Text.RegularExpressions.Regex.Replace(oldPhone ?? "", @"\D", "");
+            var specialist = specialists.FirstOrDefault(sp =>
+            {
+                var spDigits = System.Text.RegularExpressions.Regex.Replace(sp.Phone ?? "", @"\D", "");
+                if (cleanOldPhoneDigits.Length >= 8 && spDigits.Length >= 8 && spDigits.EndsWith(cleanOldPhoneDigits.Substring(cleanOldPhoneDigits.Length - 8))) return true;
+                if (!string.IsNullOrEmpty(oldEmail) && !string.IsNullOrEmpty(sp.Email) && sp.Email.ToLowerInvariant() == oldEmail.ToLowerInvariant()) return true;
+                return false;
+            });
+
+            if (specialist != null)
+            {
+                specialist.UpdatePhones(formattedPhone, specialist.AdditionalPhonesJson);
+                specialist.Update(
+                    dto.FullName?.Trim() ?? specialist.Name,
+                    specialist.Category,
+                    formattedPhone,
+                    specialist.NameHy,
+                    specialist.NameEn,
+                    specialist.NameRu,
+                    specialist.JobTitle,
+                    specialist.JobTitleHy,
+                    specialist.JobTitleEn,
+                    specialist.JobTitleRu,
+                    cleanEmail,
+                    specialist.SalonId,
+                    specialist.SalonName,
+                    specialist.AvatarUrl,
+                    specialist.Bio,
+                    specialist.BioHy,
+                    specialist.BioEn,
+                    specialist.BioRu,
+                    specialist.ExperienceYears,
+                    specialist.WorkingHours,
+                    specialist.CommissionRate,
+                    specialist.ServicesJson,
+                    specialist.WorkplacesJson
+                );
+            }
+
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "User updated successfully.", user });
+        })
+        .WithSummary("Update user profile (phone, email, full name) by admin");
+
         // ------------------ SALONS MANAGEMENT ------------------
         adminGroup.MapGet("/salons", async (AppDbContext dbContext, CancellationToken ct) =>
         {
@@ -529,6 +589,25 @@ public static class AdminEndpoints
                 updateAddJson = System.Text.Json.JsonSerializer.Serialize(dto.AdditionalPhones);
             }
             specialist.UpdatePhones(dto.Phone, updateAddJson);
+
+            // Sync matching User entity's email if matching User exists
+            if (!string.IsNullOrWhiteSpace(dto.Email))
+            {
+                var newEmailClean = dto.Email.Trim().ToLowerInvariant();
+                var cleanPhone = System.Text.RegularExpressions.Regex.Replace(dto.Phone ?? specialist.Phone ?? "", @"\D", "");
+                var users = await dbContext.Users.ToListAsync(ct);
+                var user = users.FirstOrDefault(u =>
+                {
+                    var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                    if (cleanPhone.Length >= 8 && uDigits.Length >= 8 && uDigits.EndsWith(cleanPhone.Substring(cleanPhone.Length - 8))) return true;
+                    if (!string.IsNullOrEmpty(specialist.Email) && !string.IsNullOrEmpty(u.Email) && u.Email.ToLowerInvariant() == specialist.Email.ToLowerInvariant()) return true;
+                    return false;
+                });
+                if (user != null)
+                {
+                    user.UpdateProfile(user.Phone, dto.Name ?? user.FullName, newEmailClean, user.Gender, user.Birthday);
+                }
+            }
 
             try
             {

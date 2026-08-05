@@ -8,6 +8,12 @@ public record BlockToggleDto(
     bool IsBlocked
 );
 
+public record UpdateUserDto(
+    string FullName,
+    string Phone,
+    string? Email
+);
+
 public record CreateSalonDto(
     string Name,
     string? NameHy,
