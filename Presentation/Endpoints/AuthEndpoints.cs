@@ -226,7 +226,7 @@ public static class AuthEndpoints
 
             if (existingPending != null)
             {
-                return Results.Conflict(new { message = "Ձեր փոփոխությունը արդեն ուղարկվել է ադմինիստրատորին և սպասվում է հաստատման:", request = existingPending });
+                return Results.Conflict(new { message = "Ձեր դիմումը գտնվում է նույնականացման և հաստատման փուլում։ Հաստատման ավարտից հետո Ձեր տվյալները կթարմացվեն և կարտացոլվեն համակարգում։", request = existingPending });
             }
 
             var newAddJson = dto.NewAdditionalPhonesJson;
@@ -248,7 +248,7 @@ public static class AuthEndpoints
             await dbContext.SaveChangesAsync(ct);
 
             return Results.Ok(new { 
-                message = "Ձեր փոփոխությունը ուղարկվել է ադմինիստրատորին և սպասվում է հաստատման, երբ որ հաստատվի, այն ժամանակ էլ տվյալները կփոխվեն ու ցուցադրվեն:", 
+                message = "Ձեր դիմումը գտնվում է նույնականացման և հաստատման փուլում։ Հաստատման ավարտից հետո Ձեր տվյալները կթարմացվեն և կարտացոլվեն համակարգում։", 
                 request 
             });
         })
