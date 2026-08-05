@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using movaa_project_back.Application.DTOs.Auth;
 using movaa_project_back.Application.Services;
 using movaa_project_back.Data;
+using movaa_project_back.Domain.Entities;
 
 namespace movaa_project_back.Presentation.Endpoints;
 
