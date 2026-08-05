@@ -319,6 +319,7 @@ public static class AdminEndpoints
                         sp.JobTitleRu,
                         sp.Category,
                         sp.Phone,
+                        sp.AdditionalPhonesJson,
                         sp.Email,
                         sp.SalonId,
                         sp.SalonName,
@@ -369,6 +370,7 @@ public static class AdminEndpoints
                             sp.JobTitle,
                             sp.Category,
                             sp.Phone,
+                            sp.AdditionalPhonesJson,
                             sp.Email,
                             sp.SalonId,
                             sp.SalonName,
@@ -432,6 +434,16 @@ public static class AdminEndpoints
                 servicesJson: dto.ServicesJson,
                 workplacesJson: dto.WorkplacesJson
             );
+
+            var createAddJson = dto.AdditionalPhonesJson;
+            if (string.IsNullOrWhiteSpace(createAddJson) && dto.AdditionalPhones != null)
+            {
+                createAddJson = System.Text.Json.JsonSerializer.Serialize(dto.AdditionalPhones);
+            }
+            if (!string.IsNullOrWhiteSpace(createAddJson))
+            {
+                specialist.UpdatePhones(dto.Phone, createAddJson);
+            }
 
             try
             {
@@ -510,6 +522,13 @@ public static class AdminEndpoints
                 servicesJson: dto.ServicesJson,
                 workplacesJson: dto.WorkplacesJson
             );
+
+            var updateAddJson = dto.AdditionalPhonesJson;
+            if (string.IsNullOrWhiteSpace(updateAddJson) && dto.AdditionalPhones != null)
+            {
+                updateAddJson = System.Text.Json.JsonSerializer.Serialize(dto.AdditionalPhones);
+            }
+            specialist.UpdatePhones(dto.Phone, updateAddJson);
 
             try
             {
