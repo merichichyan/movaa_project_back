@@ -85,9 +85,28 @@ public static class AdminEndpoints
         })
         .WithSummary("Block or unblock a user");
 
-        adminGroup.MapPut("/users/{id:guid}", async (Guid id, [FromBody] UpdateUserDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        adminGroup.MapPut("/users/{id}", async (string id, [FromBody] UpdateUserDto dto, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+            User? user = null;
+            if (Guid.TryParse(id, out var parsedGuid))
+            {
+                user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == parsedGuid, ct);
+            }
+
+            if (user == null && !string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                var cleanPhone = System.Text.RegularExpressions.Regex.Replace(dto.Phone, @"\D", "");
+                if (cleanPhone.Length >= 6)
+                {
+                    var allUsers = await dbContext.Users.ToListAsync(ct);
+                    user = allUsers.FirstOrDefault(u =>
+                    {
+                        var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                        return uDigits.Length >= 6 && uDigits.EndsWith(cleanPhone.Substring(Math.Max(0, cleanPhone.Length - 6)));
+                    });
+                }
+            }
+
             if (user == null) return Results.NotFound(new { message = "User not found." });
 
             var oldPhone = user.Phone;

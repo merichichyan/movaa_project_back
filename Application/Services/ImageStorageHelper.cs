@@ -52,6 +52,10 @@ public static class ImageStorageHelper
             if (!string.IsNullOrWhiteSpace(hostUrl))
             {
                 var cleanHost = hostUrl.TrimEnd('/');
+                if (cleanHost.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !cleanHost.Contains("localhost"))
+                {
+                    cleanHost = "https://" + cleanHost.Substring(7);
+                }
                 return $"{cleanHost}/logos/{fileName}";
             }
 
