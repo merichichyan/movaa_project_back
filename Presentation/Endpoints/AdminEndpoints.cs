@@ -555,6 +555,56 @@ public static class AdminEndpoints
         })
         .WithSummary("Block or unblock a specialist");
 
+        adminGroup.MapPost("/specialists/{id:guid}/password", async (Guid id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(sp => sp.Id == id, ct);
+            if (specialist == null) return Results.NotFound(new { message = "Specialist not found." });
+
+            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 6)
+            {
+                return Results.BadRequest(new { message = "Password must be at least 6 characters long." });
+            }
+
+            var newHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword.Trim());
+
+            var rawPhone = specialist.Phone;
+            var cleanDigits = System.Text.RegularExpressions.Regex.Replace(rawPhone ?? "", @"\D", "");
+            var phoneFormatted = cleanDigits.StartsWith("374") ? "+" + cleanDigits : "+374" + cleanDigits.TrimStart('0');
+            var userEmail = specialist.Email?.Trim().ToLowerInvariant();
+
+            var users = await dbContext.Users.ToListAsync(ct);
+            var user = users.FirstOrDefault(u =>
+            {
+                var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                if (cleanDigits.Length >= 8 && uDigits.Length >= 8 && uDigits.EndsWith(cleanDigits.Substring(cleanDigits.Length - 8))) return true;
+                if (!string.IsNullOrEmpty(userEmail) && !string.IsNullOrEmpty(u.Email) && u.Email.ToLowerInvariant() == userEmail) return true;
+                return false;
+            });
+
+            if (user != null)
+            {
+                user.UpdatePasswordHash(newHash);
+                user.UpdateRole("specialist");
+            }
+            else
+            {
+                user = new User(
+                    phone: phoneFormatted,
+                    passwordHash: newHash,
+                    fullName: specialist.Name,
+                    role: "specialist",
+                    email: userEmail
+                );
+                user.UpdateStatus("Verified");
+                dbContext.Users.Add(user);
+            }
+
+            specialist.SetActivated();
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Specialist password updated successfully." });
+        })
+        .WithSummary("Change specialist password by admin");
+
         // ------------------ CATEGORIES MANAGEMENT ------------------
         adminGroup.MapGet("/categories", async (AppDbContext dbContext, CancellationToken ct) =>
         {

@@ -176,6 +176,29 @@ public static class AuthEndpoints
         .WithSummary("Complete onboarding")
         .WithDescription("Marks onboarding status as completed for authenticated user.");
 
+        authGroup.MapPost("/change-password", async ([FromBody] UserChangePasswordRequestDto request, IAuthService authService, CancellationToken ct) =>
+        {
+            try
+            {
+                await authService.ChangeUserPasswordAsync(request, ct);
+                return Results.Ok(new { message = "Գաղտնաբառը հաջողությամբ փոխվել է:" });
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+        })
+        .WithSummary("Change user/specialist password")
+        .WithDescription("Changes password for user or specialist.");
+
         return app;
     }
 }

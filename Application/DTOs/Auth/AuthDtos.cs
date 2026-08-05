@@ -35,3 +35,9 @@ public record AuthResponseDto(
     string Role,
     bool IsOnboardingCompleted
 );
+
+public record UserChangePasswordRequestDto(
+    string? Phone,
+    string? CurrentPassword,
+    string NewPassword
+);
