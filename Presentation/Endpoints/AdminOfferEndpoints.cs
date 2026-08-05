@@ -13,7 +13,7 @@ public static class AdminOfferEndpoints
         var apiGroup = app.MapGroup("/api");
 
         // Function to get active or all offers
-        async Task<IResult> GetOffersHandler(AppDbContext dbContext, CancellationToken ct, bool activeOnly = false)
+        async Task<IResult> GetOffersHandler(AppDbContext dbContext, CancellationToken ct, bool activeOnly = false, Guid? specialistId = null)
         {
             try
             {
@@ -21,6 +21,10 @@ public static class AdminOfferEndpoints
                 if (activeOnly)
                 {
                     query = query.Where(o => o.IsActive);
+                }
+                if (specialistId.HasValue)
+                {
+                    query = query.Where(o => o.SpecialistId == specialistId.Value);
                 }
 
                 var offers = await query
@@ -159,7 +163,7 @@ public static class AdminOfferEndpoints
         }
 
         // Register routes under /api/offers (Public endpoint defaults to activeOnly = true)
-        apiGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly) => await GetOffersHandler(dbContext, ct, activeOnly: activeOnly ?? true));
+        apiGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? specialistId) => await GetOffersHandler(dbContext, ct, activeOnly: activeOnly ?? true, specialistId: specialistId));
         apiGroup.MapPost("/offers", async ([FromBody] CreateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await CreateOfferHandler(dto, dbContext, ct));
         apiGroup.MapPost("/offers/reorder", async ([FromBody] ReorderOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await ReorderOffersHandler(dto, dbContext, ct));
         apiGroup.MapPut("/offers/{id:guid}", async (Guid id, [FromBody] UpdateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await UpdateOfferHandler(id, dto, dbContext, ct));
@@ -168,7 +172,7 @@ public static class AdminOfferEndpoints
 
         // Register routes under /api/admin/offers
         var adminGroup = apiGroup.MapGroup("/admin");
-        adminGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct) => await GetOffersHandler(dbContext, ct, activeOnly: false));
+        adminGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] Guid? specialistId) => await GetOffersHandler(dbContext, ct, activeOnly: false, specialistId: specialistId));
         adminGroup.MapPost("/offers", async ([FromBody] CreateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await CreateOfferHandler(dto, dbContext, ct));
         adminGroup.MapPost("/offers/reorder", async ([FromBody] ReorderOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await ReorderOffersHandler(dto, dbContext, ct));
         adminGroup.MapPut("/offers/{id:guid}", async (Guid id, [FromBody] UpdateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await UpdateOfferHandler(id, dto, dbContext, ct));
