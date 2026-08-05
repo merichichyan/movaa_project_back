@@ -41,10 +41,21 @@ public class SpecialistPhoneChangeRequest
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Reject(string? note = null)
+    public void Reject(string? note = null, string? noteHy = null, string? noteEn = null, string? noteRu = null)
     {
         Status = "Rejected";
-        RejectionNote = note?.Trim();
+        if (!string.IsNullOrWhiteSpace(noteHy) || !string.IsNullOrWhiteSpace(noteEn) || !string.IsNullOrWhiteSpace(noteRu))
+        {
+            var dict = new Dictionary<string, string>();
+            if (!string.IsNullOrWhiteSpace(noteHy)) dict["hy"] = noteHy.Trim();
+            if (!string.IsNullOrWhiteSpace(noteEn)) dict["en"] = noteEn.Trim();
+            if (!string.IsNullOrWhiteSpace(noteRu)) dict["ru"] = noteRu.Trim();
+            RejectionNote = System.Text.Json.JsonSerializer.Serialize(dict);
+        }
+        else
+        {
+            RejectionNote = note?.Trim();
+        }
         UpdatedAt = DateTime.UtcNow;
     }
 }

@@ -139,4 +139,9 @@ public record UpdateCategoryDto(
     bool IsActive
 );
 
-public record RejectPhoneRequestDto(string? Note);
+public record RejectPhoneRequestDto(
+    string? Note = null,
+    string? NoteHy = null,
+    string? NoteEn = null,
+    string? NoteRu = null
+);

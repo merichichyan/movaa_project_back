@@ -741,7 +741,7 @@ public static class AdminEndpoints
             var request = await dbContext.SpecialistPhoneChangeRequests.FirstOrDefaultAsync(r => r.Id == id, ct);
             if (request == null) return Results.NotFound(new { message = "Request not found." });
 
-            request.Reject(body?.Note);
+            request.Reject(body?.Note, body?.NoteHy, body?.NoteEn, body?.NoteRu);
             await dbContext.SaveChangesAsync(ct);
             return Results.Ok(new { message = "Phone change request rejected.", request });
         })
