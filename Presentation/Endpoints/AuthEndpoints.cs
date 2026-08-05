@@ -83,9 +83,14 @@ public static class AuthEndpoints
             {
                 return Results.BadRequest(new { message = ex.Message });
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
                 return Results.Unauthorized();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Login Error] {ex}");
+                return Results.BadRequest(new { message = $"Login failed: {ex.Message}" });
             }
         })
         .WithSummary("Log in user")
@@ -106,6 +111,11 @@ public static class AuthEndpoints
             catch (UnauthorizedAccessException)
             {
                 return Results.Unauthorized();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Login Error] {ex}");
+                return Results.BadRequest(new { message = $"Login failed: {ex.Message}" });
             }
         })
         .WithTags("Auth")

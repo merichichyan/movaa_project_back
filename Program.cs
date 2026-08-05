@@ -304,6 +304,7 @@ using (var scope = app.Services.CreateScope())
                 );
 
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""AdditionalPhonesJson"" text DEFAULT '[]';
+                ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""AvatarUrl"" text;
 
                 CREATE TABLE IF NOT EXISTS ""SpecialistPhoneChangeRequests"" (
                     ""Id"" UUID PRIMARY KEY,
