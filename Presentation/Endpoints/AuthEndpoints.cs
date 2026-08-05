@@ -286,7 +286,7 @@ public static class AuthEndpoints
             return Results.Ok(new { 
                 hasPending = latest.Status == "Pending", 
                 hasRejected = latest.Status == "Rejected",
-                rejectionNote = latest.Status == "Rejected" ? latest.Note : null,
+                rejectionNote = latest.Status == "Rejected" ? latest.RejectionNote : null,
                 request = latest 
             });
         })
