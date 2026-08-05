@@ -675,6 +675,59 @@ public static class AdminEndpoints
         })
         .WithSummary("Delete a category");
 
+        // Specialist Phone Change Requests Management
+        adminGroup.MapGet("/specialist-phone-requests", async (AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var requests = await dbContext.SpecialistPhoneChangeRequests
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync(ct);
+            return Results.Ok(requests);
+        })
+        .WithSummary("Get all specialist phone change requests");
+
+        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/approve", async (Guid id, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var request = await dbContext.SpecialistPhoneChangeRequests.FirstOrDefaultAsync(r => r.Id == id, ct);
+            if (request == null) return Results.NotFound(new { message = "Request not found." });
+
+            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == request.SpecialistId, ct);
+            if (specialist != null)
+            {
+                specialist.UpdatePhones(request.NewPrimaryPhone, request.NewAdditionalPhonesJson);
+
+                // Sync User phone if matching User exists
+                var cleanOld = System.Text.RegularExpressions.Regex.Replace(request.OldPrimaryPhone ?? "", @"\D", "");
+                var users = await dbContext.Users.ToListAsync(ct);
+                var user = users.FirstOrDefault(u =>
+                {
+                    var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                    return cleanOld.Length >= 6 && uDigits.EndsWith(cleanOld);
+                });
+                if (user != null)
+                {
+                    var cleanNew = System.Text.RegularExpressions.Regex.Replace(request.NewPrimaryPhone ?? "", @"\D", "");
+                    var formattedNew = cleanNew.StartsWith("374") ? "+" + cleanNew : "+374" + cleanNew.TrimStart('0');
+                    user.UpdatePhone(formattedNew);
+                }
+            }
+
+            request.Approve();
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Phone change request approved successfully.", request });
+        })
+        .WithSummary("Approve specialist phone change request");
+
+        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/reject", async (Guid id, [FromBody] RejectPhoneRequestDto? body, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var request = await dbContext.SpecialistPhoneChangeRequests.FirstOrDefaultAsync(r => r.Id == id, ct);
+            if (request == null) return Results.NotFound(new { message = "Request not found." });
+
+            request.Reject(body?.Note);
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Phone change request rejected.", request });
+        })
+        .WithSummary("Reject specialist phone change request");
+
         return app;
     }
 }

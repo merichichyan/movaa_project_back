@@ -19,6 +19,7 @@ namespace movaa_project_back.Data
         public DbSet<Booking> Bookings => Set<Booking>();
         public DbSet<SalonResource> SalonResources => Set<SalonResource>();
         public DbSet<ServiceResource> ServiceResources => Set<ServiceResource>();
+        public DbSet<SpecialistPhoneChangeRequest> SpecialistPhoneChangeRequests => Set<SpecialistPhoneChangeRequest>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

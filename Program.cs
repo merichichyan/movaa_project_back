@@ -298,9 +298,25 @@ using (var scope = app.Services.CreateScope())
                 CREATE TABLE IF NOT EXISTS ""ServiceResources"" (
                     ""Id"" UUID PRIMARY KEY,
                     ""SalonId"" UUID NOT NULL,
-                    ""ServiceName"" TEXT NOT NULL,
-                    ""ResourceId"" UUID NOT NULL,
-                    ""RequiredQuantity"" INT DEFAULT 1
+                    ""ServiceId"" TEXT NOT NULL,
+                    ""ResourceName"" TEXT NOT NULL,
+                    ""QuantityRequired"" INT NOT NULL
+                );
+
+                ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""AdditionalPhonesJson"" text DEFAULT '[]';
+
+                CREATE TABLE IF NOT EXISTS ""SpecialistPhoneChangeRequests"" (
+                    ""Id"" UUID PRIMARY KEY,
+                    ""SpecialistId"" UUID NOT NULL,
+                    ""SpecialistName"" TEXT NOT NULL,
+                    ""OldPrimaryPhone"" TEXT NOT NULL,
+                    ""OldAdditionalPhonesJson"" TEXT DEFAULT '[]',
+                    ""NewPrimaryPhone"" TEXT NOT NULL,
+                    ""NewAdditionalPhonesJson"" TEXT DEFAULT '[]',
+                    ""Status"" TEXT DEFAULT 'Pending',
+                    ""RejectionNote"" TEXT,
+                    ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
                 );
             ");
 

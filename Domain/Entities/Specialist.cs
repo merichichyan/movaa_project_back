@@ -15,6 +15,7 @@ public class Specialist
 
     public string Category { get; private set; } = string.Empty;
     public string Phone { get; private set; } = string.Empty;
+    public string AdditionalPhonesJson { get; private set; } = "[]";
     public string? Email { get; private set; }
     public Guid? SalonId { get; private set; }
     public string? SalonName { get; private set; }
@@ -172,6 +173,16 @@ public class Specialist
     public void SetActivated()
     {
         IsActivated = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdatePhones(string primaryPhone, string? additionalPhonesJson)
+    {
+        if (!string.IsNullOrWhiteSpace(primaryPhone))
+        {
+            Phone = primaryPhone.Trim();
+        }
+        AdditionalPhonesJson = !string.IsNullOrWhiteSpace(additionalPhonesJson) ? additionalPhonesJson.Trim() : "[]";
         UpdatedAt = DateTime.UtcNow;
     }
 }

@@ -41,3 +41,10 @@ public record UserChangePasswordRequestDto(
     string? CurrentPassword,
     string NewPassword
 );
+
+public record SpecialistPhoneChangeRequestDto(
+    string CurrentPhone,
+    string NewPrimaryPhone,
+    List<string>? NewAdditionalPhones,
+    string? NewAdditionalPhonesJson
+);

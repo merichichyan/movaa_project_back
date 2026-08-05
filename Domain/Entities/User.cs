@@ -53,6 +53,15 @@ public class User
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void UpdatePhone(string phone)
+    {
+        if (!string.IsNullOrWhiteSpace(phone))
+        {
+            Phone = phone.Trim();
+            UpdatedAt = DateTime.UtcNow;
+        }
+    }
+
     public void UpdateProfile(string phone, string fullName, string? email, string? gender, DateTime? birthday)
     {
         Phone = phone.Trim();

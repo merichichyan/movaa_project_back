@@ -199,6 +199,91 @@ public static class AuthEndpoints
         .WithSummary("Change user/specialist password")
         .WithDescription("Changes password for user or specialist.");
 
+        authGroup.MapPost("/phone-change-request", async ([FromBody] SpecialistPhoneChangeRequestDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(dto.CurrentPhone) || string.IsNullOrWhiteSpace(dto.NewPrimaryPhone))
+            {
+                return Results.BadRequest(new { message = "Հեռախոսահամարը պարտադիր է:" });
+            }
+
+            var cleanCurrent = System.Text.RegularExpressions.Regex.Replace(dto.CurrentPhone, @"\D", "");
+            var specialists = await dbContext.Specialists.ToListAsync(ct);
+            var specialist = specialists.FirstOrDefault(s =>
+            {
+                var sDigits = System.Text.RegularExpressions.Regex.Replace(s.Phone ?? "", @"\D", "");
+                return cleanCurrent.Length >= 4 && (sDigits.EndsWith(cleanCurrent) || cleanCurrent.EndsWith(sDigits));
+            });
+
+            if (specialist == null)
+            {
+                return Results.NotFound(new { message = "Մասնագետը չի գտնվել:" });
+            }
+
+            // Check if there is already a Pending request
+            var existingPending = await dbContext.SpecialistPhoneChangeRequests
+                .FirstOrDefaultAsync(r => r.SpecialistId == specialist.Id && r.Status == "Pending", ct);
+
+            if (existingPending != null)
+            {
+                return Results.Conflict(new { message = "Ձեր փոփոխությունը արդեն ուղարկվել է ադմինիստրատորին և սպասվում է հաստատման:", request = existingPending });
+            }
+
+            var newAddJson = dto.NewAdditionalPhonesJson;
+            if (string.IsNullOrWhiteSpace(newAddJson) && dto.NewAdditionalPhones != null)
+            {
+                newAddJson = System.Text.Json.JsonSerializer.Serialize(dto.NewAdditionalPhones);
+            }
+
+            var request = new SpecialistPhoneChangeRequest(
+                specialistId: specialist.Id,
+                specialistName: specialist.Name,
+                oldPrimaryPhone: specialist.Phone,
+                oldAdditionalPhonesJson: specialist.AdditionalPhonesJson,
+                newPrimaryPhone: dto.NewPrimaryPhone.Trim(),
+                newAdditionalPhonesJson: newAddJson
+            );
+
+            dbContext.SpecialistPhoneChangeRequests.Add(request);
+            await dbContext.SaveChangesAsync(ct);
+
+            return Results.Ok(new { 
+                message = "Ձեր փոփոխությունը ուղարկվել է ադմինիստրատորին և սպասվում է հաստատման, երբ որ հաստատվի, այն ժամանակ էլ տվյալները կփոխվեն ու ցուցադրվեն:", 
+                request 
+            });
+        })
+        .WithSummary("Submit a phone change request from specialist profile");
+
+        authGroup.MapGet("/phone-change-request/status", async ([FromQuery] string phone, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                return Results.Ok(new { hasPending = false });
+            }
+
+            var cleanDigits = System.Text.RegularExpressions.Regex.Replace(phone, @"\D", "");
+            var specialists = await dbContext.Specialists.ToListAsync(ct);
+            var specialist = specialists.FirstOrDefault(s =>
+            {
+                var sDigits = System.Text.RegularExpressions.Regex.Replace(s.Phone ?? "", @"\D", "");
+                return cleanDigits.Length >= 4 && (sDigits.EndsWith(cleanDigits) || cleanDigits.EndsWith(sDigits));
+            });
+
+            if (specialist == null)
+            {
+                return Results.Ok(new { hasPending = false });
+            }
+
+            var pending = await dbContext.SpecialistPhoneChangeRequests
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync(r => r.SpecialistId == specialist.Id && r.Status == "Pending", ct);
+
+            return Results.Ok(new { 
+                hasPending = pending != null, 
+                request = pending 
+            });
+        })
+        .WithSummary("Get phone change request status for specialist");
+
         return app;
     }
 }

@@ -89,7 +89,9 @@ public record CreateSpecialistDto(
     string? WorkingHours,
     double? CommissionRate,
     string? ServicesJson,
-    string? WorkplacesJson
+    string? WorkplacesJson,
+    List<string>? AdditionalPhones,
+    string? AdditionalPhonesJson
 );
 
 public record UpdateSpecialistDto(
@@ -115,7 +117,9 @@ public record UpdateSpecialistDto(
     string? WorkingHours,
     double? CommissionRate,
     string? ServicesJson,
-    string? WorkplacesJson
+    string? WorkplacesJson,
+    List<string>? AdditionalPhones,
+    string? AdditionalPhonesJson
 );
 
 public record CreateCategoryDto(
@@ -134,3 +138,5 @@ public record UpdateCategoryDto(
     int? DisplayOrder,
     bool IsActive
 );
+
+public record RejectPhoneRequestDto(string? Note);
