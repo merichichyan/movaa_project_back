@@ -16,7 +16,15 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        try
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        }
+        catch (Exception ex) when (ex.Message.Contains("AvatarUrl") || ex.Message.Contains("42703"))
+        {
+            await _context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""AvatarUrl"" text;", ct);
+            return await _context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        }
     }
 
     public async Task<User?> GetByPhoneAsync(string phone, CancellationToken ct = default)
@@ -33,20 +41,43 @@ public class UserRepository : IUserRepository
         var option4 = "+374" + digitsNoPrefix;
         var option5 = "374" + digitsNoPrefix;
 
-        return await _context.Users.FirstOrDefaultAsync(
-            u => u.Phone == option1 || 
-                 u.Phone == option2 || 
-                 u.Phone == option3 || 
-                 u.Phone == option4 || 
-                 u.Phone == option5 ||
-                 u.Phone.EndsWith(digitsNoPrefix),
-            ct);
+        try
+        {
+            return await _context.Users.FirstOrDefaultAsync(
+                u => u.Phone == option1 || 
+                     u.Phone == option2 || 
+                     u.Phone == option3 || 
+                     u.Phone == option4 || 
+                     u.Phone == option5 ||
+                     u.Phone.EndsWith(digitsNoPrefix),
+                ct);
+        }
+        catch (Exception ex) when (ex.Message.Contains("AvatarUrl") || ex.Message.Contains("42703"))
+        {
+            await _context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""AvatarUrl"" text;", ct);
+            return await _context.Users.FirstOrDefaultAsync(
+                u => u.Phone == option1 || 
+                     u.Phone == option2 || 
+                     u.Phone == option3 || 
+                     u.Phone == option4 || 
+                     u.Phone == option5 ||
+                     u.Phone.EndsWith(digitsNoPrefix),
+                ct);
+        }
     }
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         var normalizedEmail = email.ToLowerInvariant().Trim();
-        return await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, ct);
+        try
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, ct);
+        }
+        catch (Exception ex) when (ex.Message.Contains("AvatarUrl") || ex.Message.Contains("42703"))
+        {
+            await _context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""AvatarUrl"" text;", ct);
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, ct);
+        }
     }
 
     public async Task<User> AddAsync(User user, CancellationToken ct = default)
