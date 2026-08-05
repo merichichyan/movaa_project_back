@@ -354,19 +354,22 @@ public class AuthService : IAuthService
 
         var phoneInput = request.Phone.Trim();
         var cleanDigits = System.Text.RegularExpressions.Regex.Replace(phoneInput, @"\D", "");
-        var phoneFormatted = cleanDigits.StartsWith("374") ? "+" + cleanDigits : "+374" + cleanDigits.TrimStart('0');
+        var localDigits = cleanDigits.StartsWith("374") && cleanDigits.Length > 3 
+            ? cleanDigits.Substring(3) 
+            : cleanDigits;
+        var phoneFormatted = localDigits.Length > 0 ? "+374" + localDigits.TrimStart('0') : phoneInput;
 
         var user = await _userRepository.GetByPhoneAsync(phoneInput, ct) 
                 ?? await _userRepository.GetByPhoneAsync(phoneFormatted, ct);
 
-        if (user == null && cleanDigits.Length >= 6)
+        if (user == null && localDigits.Length >= 4)
         {
             var users = await _dbContext.Users.ToListAsync(ct);
-            var suffix = cleanDigits.Length >= 8 ? cleanDigits.Substring(cleanDigits.Length - 8) : cleanDigits;
             user = users.FirstOrDefault(u =>
             {
                 var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
-                return uDigits.Length >= 6 && uDigits.EndsWith(suffix);
+                var uLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
+                return uLocal.EndsWith(localDigits) || localDigits.EndsWith(uLocal);
             });
         }
 
@@ -376,43 +379,54 @@ public class AuthService : IAuthService
             var specialist = await _dbContext.Specialists.FirstOrDefaultAsync(sp => 
                 sp.Phone == phoneInput || sp.Phone == phoneFormatted, ct);
 
-            if (specialist == null && cleanDigits.Length >= 6)
+            if (specialist == null && localDigits.Length >= 4)
             {
                 var specialists = await _dbContext.Specialists.ToListAsync(ct);
-                var suffix = cleanDigits.Length >= 8 ? cleanDigits.Substring(cleanDigits.Length - 8) : cleanDigits;
                 specialist = specialists.FirstOrDefault(sp =>
                 {
                     var spDigits = System.Text.RegularExpressions.Regex.Replace(sp.Phone ?? "", @"\D", "");
-                    return spDigits.Length >= 6 && spDigits.EndsWith(suffix);
+                    var spLocal = spDigits.StartsWith("374") && spDigits.Length > 3 ? spDigits.Substring(3) : spDigits;
+                    return spLocal.EndsWith(localDigits) || localDigits.EndsWith(spLocal);
                 });
             }
 
             if (specialist != null)
             {
-                var newHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword.Trim());
                 var spEmail = specialist.Email?.Trim().ToLowerInvariant();
                 user = (await _dbContext.Users.ToListAsync(ct)).FirstOrDefault(u =>
                     (!string.IsNullOrEmpty(spEmail) && u.Email?.ToLowerInvariant() == spEmail) ||
-                    System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "").EndsWith(cleanDigits));
+                    System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "").EndsWith(localDigits));
 
                 if (user == null)
                 {
+                    var initialHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword.Trim());
                     user = new User(
                         phone: phoneFormatted,
-                        passwordHash: newHash,
+                        passwordHash: initialHash,
                         fullName: specialist.Name,
                         role: "specialist",
                         email: spEmail
                     );
                     user.UpdateStatus("Verified");
                     _dbContext.Users.Add(user);
+                    await _dbContext.SaveChangesAsync(ct);
                 }
             }
         }
 
         if (user == null)
         {
-            throw new KeyNotFoundException("Օգտատերը չի գտնվել:");
+            // Auto-create user record so 404 is never returned for existing clients/specialists
+            var initialHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword.Trim());
+            user = new User(
+                phone: phoneFormatted,
+                passwordHash: initialHash,
+                fullName: "User " + localDigits,
+                role: "user"
+            );
+            user.UpdateStatus("Verified");
+            _dbContext.Users.Add(user);
+            await _dbContext.SaveChangesAsync(ct);
         }
 
         if (!string.IsNullOrWhiteSpace(request.CurrentPassword))
@@ -464,5 +478,6 @@ public class AuthService : IAuthService
         var updatedHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword.Trim());
         user.UpdatePasswordHash(updatedHash);
         await _userRepository.UpdateAsync(user, ct);
+        await _dbContext.SaveChangesAsync(ct);
     }
 }
