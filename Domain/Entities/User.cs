@@ -11,6 +11,7 @@ public class User
     public string? Gender { get; private set; }
     public DateTime? Birthday { get; private set; }
     public string? DeviceId { get; private set; }
+    public string? AvatarUrl { get; private set; }
     public string Status { get; private set; } = "Pending";
     public bool IsBlocked { get; private set; }
     public bool IsOnboardingCompleted { get; private set; }
@@ -82,6 +83,12 @@ public class User
     {
         IsBlocked = isBlocked;
         Status = isBlocked ? "Blocked" : "Active";
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateAvatar(string? avatarUrl)
+    {
+        AvatarUrl = avatarUrl?.Trim();
         UpdatedAt = DateTime.UtcNow;
     }
 }

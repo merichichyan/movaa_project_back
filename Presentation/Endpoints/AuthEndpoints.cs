@@ -290,7 +290,51 @@ public static class AuthEndpoints
                 request = latest 
             });
         })
-        .WithSummary("Get phone change request status for specialist");
+        authGroup.MapPost("/update-avatar", async ([FromBody] UpdateAvatarRequestDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(dto.Phone) || string.IsNullOrWhiteSpace(dto.AvatarUrl))
+            {
+                return Results.BadRequest(new { message = "Phone and avatarUrl are required." });
+            }
+
+            var cleanPhone = System.Text.RegularExpressions.Regex.Replace(dto.Phone, @"\D", "");
+            var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+
+            // Check if it's a specialist first
+            var specialists = await dbContext.Specialists.ToListAsync(ct);
+            var specialist = specialists.FirstOrDefault(s =>
+            {
+                var sDigits = System.Text.RegularExpressions.Regex.Replace(s.Phone ?? "", @"\D", "");
+                return cleanPhone.Length >= 4 && (sDigits.EndsWith(cleanPhone) || cleanPhone.EndsWith(sDigits));
+            });
+
+            if (specialist != null)
+            {
+                var savedUrl = ImageStorageHelper.SaveBase64Image(dto.AvatarUrl, env.ContentRootPath, hostUrl, "specialists");
+                specialist.Update(avatarUrl: savedUrl);
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(new { avatarUrl = savedUrl, message = "Avatar updated successfully." });
+            }
+
+            // Check if it's a regular user
+            var users = await dbContext.Users.ToListAsync(ct);
+            var user = users.FirstOrDefault(u =>
+            {
+                var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                return cleanPhone.Length >= 4 && (uDigits.EndsWith(cleanPhone) || cleanPhone.EndsWith(uDigits));
+            });
+
+            if (user != null)
+            {
+                var savedUrl = ImageStorageHelper.SaveBase64Image(dto.AvatarUrl, env.ContentRootPath, hostUrl, "users");
+                user.UpdateAvatar(savedUrl);
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(new { avatarUrl = savedUrl, message = "Avatar updated successfully." });
+            }
+
+            return Results.NotFound(new { message = "User/Specialist not found." });
+        })
+        .WithSummary("Update avatar photo for user or specialist");
 
         return app;
     }

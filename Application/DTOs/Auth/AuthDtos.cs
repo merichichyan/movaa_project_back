@@ -48,3 +48,8 @@ public record SpecialistPhoneChangeRequestDto(
     List<string>? NewAdditionalPhones,
     string? NewAdditionalPhonesJson
 );
+
+public record UpdateAvatarRequestDto(
+    string Phone,
+    string AvatarUrl
+);
