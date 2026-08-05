@@ -373,10 +373,16 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+var uploadsFolder = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads");
+if (!Directory.Exists(uploadsFolder))
+{
+    Directory.CreateDirectory(uploadsFolder);
+}
+
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(logosFolder),
-    RequestPath = "/logos",
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsFolder),
+    RequestPath = "/uploads",
     OnPrepareResponse = ctx =>
     {
         ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");

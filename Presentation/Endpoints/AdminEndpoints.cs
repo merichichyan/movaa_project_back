@@ -212,7 +212,7 @@ public static class AdminEndpoints
             }
 
             var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
-            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
+            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl, "salons");
 
             var salon = new Salon(
                 name: dto.Name,
@@ -297,7 +297,7 @@ public static class AdminEndpoints
             if (salon == null) return Results.NotFound(new { message = "Salon not found." });
 
             var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
-            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl);
+            var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl, "salons");
 
             var phoneVal = !string.IsNullOrWhiteSpace(dto.PhoneNumber) ? dto.PhoneNumber : dto.Phone;
             var ownerPhoneVal = !string.IsNullOrWhiteSpace(dto.OwnerPhoneNumber) ? dto.OwnerPhoneNumber : dto.OwnerPhone;
@@ -486,7 +486,7 @@ public static class AdminEndpoints
             }
 
             var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
-            var savedAvatarUrl = ImageStorageHelper.SaveBase64Image(dto.AvatarUrl, env.ContentRootPath, hostUrl);
+            var savedAvatarUrl = ImageStorageHelper.SaveBase64Image(dto.AvatarUrl, env.ContentRootPath, hostUrl, "specialists");
 
             var specialist = new Specialist(
                 name: dto.Name,
@@ -574,7 +574,7 @@ public static class AdminEndpoints
             if (specialist == null) return Results.NotFound(new { message = "Specialist not found." });
 
             var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
-            var savedAvatarUrl = ImageStorageHelper.SaveBase64Image(dto.AvatarUrl, env.ContentRootPath, hostUrl);
+            var savedAvatarUrl = ImageStorageHelper.SaveBase64Image(dto.AvatarUrl, env.ContentRootPath, hostUrl, "specialists");
 
             specialist.Update(
                 name: dto.Name,
