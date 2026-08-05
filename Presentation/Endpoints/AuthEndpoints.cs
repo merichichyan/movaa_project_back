@@ -274,13 +274,20 @@ public static class AuthEndpoints
                 return Results.Ok(new { hasPending = false });
             }
 
-            var pending = await dbContext.SpecialistPhoneChangeRequests
+            var latest = await dbContext.SpecialistPhoneChangeRequests
                 .OrderByDescending(r => r.CreatedAt)
-                .FirstOrDefaultAsync(r => r.SpecialistId == specialist.Id && r.Status == "Pending", ct);
+                .FirstOrDefaultAsync(r => r.SpecialistId == specialist.Id, ct);
+
+            if (latest == null)
+            {
+                return Results.Ok(new { hasPending = false, hasRejected = false });
+            }
 
             return Results.Ok(new { 
-                hasPending = pending != null, 
-                request = pending 
+                hasPending = latest.Status == "Pending", 
+                hasRejected = latest.Status == "Rejected",
+                rejectionNote = latest.Status == "Rejected" ? latest.Note : null,
+                request = latest 
             });
         })
         .WithSummary("Get phone change request status for specialist");
