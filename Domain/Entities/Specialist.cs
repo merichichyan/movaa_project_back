@@ -185,4 +185,13 @@ public class Specialist
         AdditionalPhonesJson = !string.IsNullOrWhiteSpace(additionalPhonesJson) ? additionalPhonesJson.Trim() : "[]";
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void UpdateAvatar(string? avatarUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(avatarUrl))
+        {
+            AvatarUrl = avatarUrl.Trim();
+            UpdatedAt = DateTime.UtcNow;
+        }
+    }
 }

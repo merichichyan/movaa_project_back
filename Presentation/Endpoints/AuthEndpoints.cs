@@ -312,7 +312,7 @@ public static class AuthEndpoints
             if (specialist != null)
             {
                 var savedUrl = ImageStorageHelper.SaveBase64Image(dto.AvatarUrl, env.ContentRootPath, hostUrl, "specialists");
-                specialist.Update(avatarUrl: savedUrl);
+                specialist.UpdateAvatar(savedUrl);
                 await dbContext.SaveChangesAsync(ct);
                 return Results.Ok(new { avatarUrl = savedUrl, message = "Avatar updated successfully." });
             }
