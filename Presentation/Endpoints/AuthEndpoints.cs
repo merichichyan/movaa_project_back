@@ -289,7 +289,8 @@ public static class AuthEndpoints
                 rejectionNote = latest.Status == "Rejected" ? latest.RejectionNote : null,
                 request = latest 
             });
-        })
+        });
+
         authGroup.MapPost("/update-avatar", async ([FromBody] UpdateAvatarRequestDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(dto.Phone) || string.IsNullOrWhiteSpace(dto.AvatarUrl))
