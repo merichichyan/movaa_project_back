@@ -11,6 +11,12 @@ public record AdminLoginRequestDto(
     string Password
 );
 
+public record SalonActivationRequestDto(
+    string Phone,
+    string Email,
+    string Password
+);
+
 public record UserRegisterRequestDto(
     string Phone,
     string Password,

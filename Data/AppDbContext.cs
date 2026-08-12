@@ -22,6 +22,12 @@ namespace movaa_project_back.Data
         public DbSet<SpecialistPhoneChangeRequest> SpecialistPhoneChangeRequests => Set<SpecialistPhoneChangeRequest>();
         public DbSet<SpecialistSocialLink> SpecialistSocialLinks => Set<SpecialistSocialLink>();
 
+        public DbSet<Organization> Organizations => Set<Organization>();
+        public DbSet<Branch> Branches => Set<Branch>();
+        public DbSet<OrganizationMembership> OrganizationMemberships => Set<OrganizationMembership>();
+        public DbSet<SpecialistBranch> SpecialistBranches => Set<SpecialistBranch>();
+        public DbSet<SpecialistInvitation> SpecialistInvitations => Set<SpecialistInvitation>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -139,6 +145,47 @@ namespace movaa_project_back.Data
                       .WithMany(s => s.SocialLinks)
                       .HasForeignKey(sl => sl.SpecialistId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Organization>(entity =>
+            {
+                entity.ToTable("Organizations");
+                entity.HasKey(o => o.Id);
+                entity.Property(o => o.Name).IsRequired().HasMaxLength(200);
+                entity.HasIndex(o => o.Slug).IsUnique();
+            });
+
+            modelBuilder.Entity<Branch>(entity =>
+            {
+                entity.ToTable("Branches");
+                entity.HasKey(b => b.Id);
+                entity.Property(b => b.Name).IsRequired().HasMaxLength(200);
+                entity.Property(b => b.Address).IsRequired().HasMaxLength(300);
+                entity.HasIndex(b => b.OrganizationId);
+                entity.HasIndex(b => new { b.OrganizationId, b.Slug }).IsUnique();
+            });
+
+            modelBuilder.Entity<OrganizationMembership>(entity =>
+            {
+                entity.ToTable("OrganizationMemberships");
+                entity.HasKey(m => m.Id);
+                entity.HasIndex(m => new { m.UserId, m.OrganizationId }).IsUnique();
+                entity.HasIndex(m => m.OrganizationId);
+            });
+
+            modelBuilder.Entity<SpecialistBranch>(entity =>
+            {
+                entity.ToTable("SpecialistBranches");
+                entity.HasKey(sb => sb.Id);
+                entity.HasIndex(sb => new { sb.SpecialistId, sb.BranchId }).IsUnique();
+                entity.HasIndex(sb => sb.OrganizationId);
+            });
+
+            modelBuilder.Entity<SpecialistInvitation>(entity =>
+            {
+                entity.ToTable("SpecialistInvitations");
+                entity.HasKey(si => si.Id);
+                entity.HasIndex(si => new { si.OrganizationId, si.SpecialistId, si.Status });
             });
         }
     }

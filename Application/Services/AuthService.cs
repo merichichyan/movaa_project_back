@@ -330,6 +330,90 @@ public class AuthService : IAuthService
         );
     }
 
+    public async Task<AuthResponseDto> ActivateSalonAccountAsync(SalonActivationRequestDto request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Phone))
+        {
+            throw new ArgumentException("Հեռախոսահամարը պարտադիր է:");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            throw new ArgumentException("Էլ․ հասցեն պարտադիր է:");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Trim().Length < 6)
+        {
+            throw new ArgumentException("Գաղտնաբառը պետք է լինի առնվազն 6 նիշ:");
+        }
+
+        var rawPhone = request.Phone.Trim();
+        var cleanDigits = System.Text.RegularExpressions.Regex.Replace(rawPhone, @"\D", "");
+        if (string.IsNullOrEmpty(cleanDigits))
+        {
+            throw new ArgumentException("Անվավեր հեռախոսահամար:");
+        }
+
+        var salons = await _dbContext.Salons.ToListAsync(ct);
+        var salon = salons.FirstOrDefault(s =>
+        {
+            var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
+            var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
+            return pDigits.Equals(cleanDigits) || oDigits.Equals(cleanDigits) ||
+                   (cleanDigits.Length >= 8 && (pDigits.EndsWith(cleanDigits.Substring(cleanDigits.Length - 8)) || oDigits.EndsWith(cleanDigits.Substring(cleanDigits.Length - 8))));
+        });
+
+        if (salon == null)
+        {
+            throw new InvalidOperationException("Այս հեռախոսահամարով գրանցված սրահ չի գտնվել: Խնդրում ենք կապ հաստատել ադմինիստրատորի հետ:");
+        }
+
+        var phoneFormatted = cleanDigits.StartsWith("374") ? "+" + cleanDigits : "+374" + cleanDigits.TrimStart('0');
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password.Trim());
+        var userEmail = request.Email.Trim().ToLowerInvariant();
+
+        var existingUser = await _userRepository.GetByPhoneAsync(rawPhone, ct) 
+            ?? await _userRepository.GetByPhoneAsync(phoneFormatted, ct);
+
+        User user;
+        if (existingUser != null)
+        {
+            user = existingUser;
+            user.UpdatePasswordHash(passwordHash);
+            user.UpdateProfile(user.Phone, salon.Name, userEmail, user.Gender, user.Birthday);
+            user.UpdateRole("salon");
+            user.UpdateStatus("Verified");
+            await _userRepository.UpdateAsync(user, ct);
+        }
+        else
+        {
+            user = new User(
+                phone: phoneFormatted,
+                passwordHash: passwordHash,
+                fullName: salon.Name,
+                role: "salon",
+                email: userEmail
+            );
+            user.UpdateStatus("Verified");
+            await _userRepository.AddAsync(user, ct);
+        }
+
+        salon.SetActivated();
+        await _dbContext.SaveChangesAsync(ct);
+
+        var token = _tokenGenerator.GenerateToken(user);
+
+        return new AuthResponseDto(
+            Token: token,
+            Id: user.Id,
+            Phone: user.Phone,
+            Email: user.Email,
+            FullName: user.FullName,
+            Role: user.Role,
+            IsOnboardingCompleted: user.IsOnboardingCompleted
+        );
+    }
+
     public async Task ChangeUserPasswordAsync(UserChangePasswordRequestDto request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Phone))

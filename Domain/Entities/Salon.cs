@@ -40,6 +40,7 @@ public class Salon
 
     public bool IsApproved { get; private set; } = false;
     public bool IsActive { get; private set; } = true;
+    public bool IsActivated { get; private set; } = false;
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; private set; }
     public bool IsBlocked { get; private set; } = false;
@@ -192,6 +193,12 @@ public class Salon
     public void SetBlocked(bool isBlocked)
     {
         IsBlocked = isBlocked;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetActivated()
+    {
+        IsActivated = true;
         UpdatedAt = DateTime.UtcNow;
     }
 }

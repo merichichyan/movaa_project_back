@@ -72,6 +72,25 @@ public static class AuthEndpoints
         .WithSummary("Activate specialist account")
         .WithDescription("Activates a pre-registered specialist account with phone, email, and password.");
 
+        authGroup.MapPost("/activate-salon", async ([FromBody] SalonActivationRequestDto request, IAuthService authService, CancellationToken ct) =>
+        {
+            try
+            {
+                var result = await authService.ActivateSalonAccountAsync(request, ct);
+                return Results.Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.Conflict(new { message = ex.Message });
+            }
+        })
+        .WithSummary("Activate salon/organization account")
+        .WithDescription("Activates a pre-registered salon/organization account with phone, email, and password.");
+
         authGroup.MapPost("/login", async ([FromBody] LoginRequestDto request, IAuthService authService, CancellationToken ct) =>
         {
             try

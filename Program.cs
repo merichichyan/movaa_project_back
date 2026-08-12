@@ -234,6 +234,68 @@ using (var scope = app.Services.CreateScope())
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Admins_Username"" ON ""Admins"" (""Username"");
 
+                CREATE TABLE IF NOT EXISTS ""Organizations"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""Name"" text NOT NULL,
+                    ""Slug"" text NOT NULL,
+                    ""LogoUrl"" text,
+                    ""Description"" text,
+                    ""Phone"" text NOT NULL DEFAULT '',
+                    ""Email"" text,
+                    ""Website"" text,
+                    ""Status"" text NOT NULL DEFAULT 'ACTIVE',
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Organizations_Slug"" ON ""Organizations"" (""Slug"");
+
+                CREATE TABLE IF NOT EXISTS ""Branches"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""OrganizationId"" uuid NOT NULL,
+                    ""Name"" text NOT NULL,
+                    ""Slug"" text NOT NULL,
+                    ""Address"" text NOT NULL,
+                    ""Latitude"" double precision,
+                    ""Longitude"" double precision,
+                    ""Phone"" text NOT NULL DEFAULT '',
+                    ""Email"" text,
+                    ""WorkingHours"" text NOT NULL DEFAULT '09:00 - 18:00',
+                    ""Status"" text NOT NULL DEFAULT 'ACTIVE',
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
+
+                CREATE TABLE IF NOT EXISTS ""OrganizationMemberships"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""UserId"" uuid NOT NULL,
+                    ""OrganizationId"" uuid NOT NULL,
+                    ""Role"" text NOT NULL DEFAULT 'MANAGER',
+                    ""Status"" text NOT NULL DEFAULT 'ACTIVE',
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
+
+                CREATE TABLE IF NOT EXISTS ""SpecialistBranches"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""SpecialistId"" uuid NOT NULL,
+                    ""BranchId"" uuid NOT NULL,
+                    ""OrganizationId"" uuid NOT NULL,
+                    ""Status"" text NOT NULL DEFAULT 'ACTIVE',
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
+
+                CREATE TABLE IF NOT EXISTS ""SpecialistInvitations"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""OrganizationId"" uuid NOT NULL,
+                    ""SpecialistId"" uuid NOT NULL,
+                    ""InvitedByUserId"" uuid,
+                    ""Status"" text NOT NULL DEFAULT 'PENDING',
+                    ""Note"" text,
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
+
                 ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""ValidUntil"" text;
                 ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""OrderIndex"" integer DEFAULT 0;
             ");
@@ -468,6 +530,7 @@ app.MapOfferEndpoints();
 app.MapFavoritesEndpoints();
 app.MapBookingEndpoints();
 app.MapResourceEndpoints();
+app.MapOrganizationEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new
