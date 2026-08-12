@@ -17,7 +17,7 @@ public static class SpecialistSocialLinkEndpoints
         var group = app.MapGroup("/api/specialists").WithTags("Specialist Social Links");
 
         // 1. GET /api/specialists/{specialistId}/social-links
-        group.MapGet("/{specialistId:guid}/social-links", async (Guid specialistId, AppDbContext dbContext, CancellationToken ct) =>
+        group.MapGet("/{specialistId}/social-links", async (Guid specialistId, AppDbContext dbContext, CancellationToken ct) =>
         {
             var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
             if (specialist == null)
@@ -45,7 +45,7 @@ public static class SpecialistSocialLinkEndpoints
         .WithSummary("Get social links for a specialist");
 
         // 2. POST /api/specialists/{specialistId}/social-links
-        group.MapPost("/{specialistId:guid}/social-links", async (Guid specialistId, [FromBody] CreateSocialLinkDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
+        group.MapPost("/{specialistId}/social-links", async (Guid specialistId, [FromBody] CreateSocialLinkDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
             var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
             if (specialist == null)
@@ -103,7 +103,7 @@ public static class SpecialistSocialLinkEndpoints
         .WithSummary("Create a social link for a specialist");
 
         // 3. PUT /api/specialists/{specialistId}/social-links/{linkId}
-        group.MapPut("/{specialistId:guid}/social-links/{linkId:guid}", async (Guid specialistId, Guid linkId, [FromBody] UpdateSocialLinkDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
+        group.MapPut("/{specialistId}/social-links/{linkId}", async (Guid specialistId, Guid linkId, [FromBody] UpdateSocialLinkDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
             var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
             if (specialist == null)
@@ -166,7 +166,7 @@ public static class SpecialistSocialLinkEndpoints
         .WithSummary("Update a social link for a specialist");
 
         // 4. DELETE /api/specialists/{specialistId}/social-links/{linkId}
-        group.MapDelete("/{specialistId:guid}/social-links/{linkId:guid}", async (Guid specialistId, Guid linkId, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
+        group.MapDelete("/{specialistId}/social-links/{linkId}", async (Guid specialistId, Guid linkId, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
             var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
             if (specialist == null)
@@ -193,7 +193,7 @@ public static class SpecialistSocialLinkEndpoints
         .WithSummary("Delete a social link for a specialist");
 
         // 5. PUT /api/specialists/{specialistId}/social-links/reorder
-        group.MapPut("/{specialistId:guid}/social-links/reorder", async (Guid specialistId, [FromBody] ReorderSocialLinksDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
+        group.MapPut("/{specialistId}/social-links/reorder", async (Guid specialistId, [FromBody] ReorderSocialLinksDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
             var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
             if (specialist == null)
