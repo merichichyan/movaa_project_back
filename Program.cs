@@ -425,7 +425,6 @@ app.MapOfferEndpoints();
 app.MapFavoritesEndpoints();
 app.MapBookingEndpoints();
 app.MapResourceEndpoints();
-app.MapSpecialistSocialLinkEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new
