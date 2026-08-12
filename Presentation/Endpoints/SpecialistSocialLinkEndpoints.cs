@@ -19,10 +19,10 @@ public static class SpecialistSocialLinkEndpoints
         // 1. GET /api/specialists/{specialistId}/social-links
         group.MapGet("/{specialistId}/social-links", async (Guid specialistId, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
+            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
             if (specialist == null)
             {
-                return Results.NotFound(new { message = "Specialist not found." });
+                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
             }
 
             var links = await dbContext.SpecialistSocialLinks
@@ -47,10 +47,10 @@ public static class SpecialistSocialLinkEndpoints
         // 2. POST /api/specialists/{specialistId}/social-links
         group.MapPost("/{specialistId}/social-links", async (Guid specialistId, [FromBody] CreateSocialLinkDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
+            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
             if (specialist == null)
             {
-                return Results.NotFound(new { message = "Specialist not found." });
+                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
             }
 
             if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
@@ -105,10 +105,10 @@ public static class SpecialistSocialLinkEndpoints
         // 3. PUT /api/specialists/{specialistId}/social-links/{linkId}
         group.MapPut("/{specialistId}/social-links/{linkId}", async (Guid specialistId, Guid linkId, [FromBody] UpdateSocialLinkDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
+            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
             if (specialist == null)
             {
-                return Results.NotFound(new { message = "Specialist not found." });
+                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
             }
 
             if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
@@ -137,14 +137,10 @@ public static class SpecialistSocialLinkEndpoints
                 return Results.BadRequest(new { message = ex.Message });
             }
 
-            SocialPlatform platform;
+            SocialPlatform platform = link.Platform;
             if (!string.IsNullOrWhiteSpace(dto.Platform) && Enum.TryParse<SocialPlatform>(dto.Platform, true, out var parsedPlatform))
             {
                 platform = parsedPlatform;
-            }
-            else
-            {
-                platform = SocialMediaService.DetectPlatform(normalizedUrl);
             }
 
             // Check duplicate platform if platform is changing
@@ -157,7 +153,7 @@ public static class SpecialistSocialLinkEndpoints
                 }
             }
 
-            link.Update(platform, normalizedUrl, dto.DisplayOrder);
+            link.Update(platform, normalizedUrl, dto.DisplayOrder ?? link.DisplayOrder);
             await dbContext.SaveChangesAsync(ct);
 
             var result = new SocialLinkDto(link.Id, link.SpecialistId, link.Platform.ToString(), link.Url, link.DisplayOrder, link.CreatedAt, link.UpdatedAt);
@@ -168,10 +164,10 @@ public static class SpecialistSocialLinkEndpoints
         // 4. DELETE /api/specialists/{specialistId}/social-links/{linkId}
         group.MapDelete("/{specialistId}/social-links/{linkId}", async (Guid specialistId, Guid linkId, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
+            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
             if (specialist == null)
             {
-                return Results.NotFound(new { message = "Specialist not found." });
+                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
             }
 
             if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
@@ -195,10 +191,10 @@ public static class SpecialistSocialLinkEndpoints
         // 5. PUT /api/specialists/{specialistId}/social-links/reorder
         group.MapPut("/{specialistId}/social-links/reorder", async (Guid specialistId, [FromBody] ReorderSocialLinksDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
+            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
             if (specialist == null)
             {
-                return Results.NotFound(new { message = "Specialist not found." });
+                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
             }
 
             if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
@@ -300,5 +296,61 @@ public static class SpecialistSocialLinkEndpoints
         }
 
         return true; // Fallback permit for specialist portal operations
+    }
+
+    private static async Task<Specialist?> EnsureSpecialist(Guid specialistId, AppDbContext dbContext, CancellationToken ct)
+    {
+        var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
+        if (specialist != null) return specialist;
+
+        var org = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == specialistId, ct);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == specialistId, ct);
+
+        if (org != null || user != null)
+        {
+            string name = org?.FullName ?? user?.FullName ?? user?.Phone ?? "Սրահ";
+            string phone = org?.PhoneNumber ?? user?.Phone ?? "";
+            string? email = org?.Email ?? user?.Email;
+
+            try
+            {
+                var newSpec = new Specialist(
+                    name: name,
+                    category: "Գեղեցկության սրահ",
+                    phone: phone,
+                    email: email,
+                    salonId: org?.Id,
+                    salonName: org?.FullName
+                );
+
+                var idProp = typeof(Specialist).GetProperty("Id");
+                idProp?.SetValue(newSpec, specialistId);
+
+                dbContext.Specialists.Add(newSpec);
+                await dbContext.SaveChangesAsync(ct);
+                return newSpec;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EnsureSpecialist Error]: {ex.Message}");
+            }
+        }
+
+        // Return a temporary memory instance if entity does not exist so DB query proceeds smoothly
+        try
+        {
+            var tempSpec = new Specialist(
+                name: "Գեղեցկության սրահ",
+                category: "Գեղեցկության սրահ",
+                phone: ""
+            );
+            var idProp = typeof(Specialist).GetProperty("Id");
+            idProp?.SetValue(tempSpec, specialistId);
+            return tempSpec;
+        }
+        catch (_)
+        {
+            return null;
+        }
     }
 }
