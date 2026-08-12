@@ -688,82 +688,139 @@ public static class AdminEndpoints
         // ------------------ SPECIALIST SOCIAL LINKS ------------------
         adminGroup.MapGet("/specialists/{specialistId:guid}/social-links", async (Guid specialistId, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
-            if (specialist == null) return Results.NotFound(new { message = "Specialist not found." });
+            try
+            {
+                var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
+                if (specialist == null) return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
 
-            var links = await dbContext.SpecialistSocialLinks
-                .Where(sl => sl.SpecialistId == specialistId)
-                .OrderBy(sl => sl.DisplayOrder)
-                .ThenBy(sl => sl.CreatedAt)
-                .Select(sl => new
+                var links = await dbContext.SpecialistSocialLinks
+                    .Where(sl => sl.SpecialistId == specialistId)
+                    .OrderBy(sl => sl.DisplayOrder)
+                    .ThenBy(sl => sl.CreatedAt)
+                    .Select(sl => new
+                    {
+                        sl.Id,
+                        sl.SpecialistId,
+                        Platform = sl.Platform.ToString(),
+                        sl.Url,
+                        sl.DisplayOrder,
+                        sl.CreatedAt,
+                        sl.UpdatedAt
+                    })
+                    .ToListAsync(ct);
+
+                return Results.Ok(links);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SocialLinks GET Error]: {ex.Message} -> {ex.StackTrace}");
+                try
                 {
-                    sl.Id,
-                    sl.SpecialistId,
-                    Platform = sl.Platform.ToString(),
-                    sl.Url,
-                    sl.DisplayOrder,
-                    sl.CreatedAt,
-                    sl.UpdatedAt
-                })
-                .ToListAsync(ct);
-
-            return Results.Ok(links);
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        CREATE TABLE IF NOT EXISTS ""SpecialistSocialLinks"" (
+                            ""Id"" UUID PRIMARY KEY,
+                            ""SpecialistId"" UUID NOT NULL,
+                            ""Platform"" TEXT NOT NULL,
+                            ""Url"" TEXT NOT NULL,
+                            ""DisplayOrder"" INT DEFAULT 0,
+                            ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                            ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
+                        );
+                    ", ct);
+                    return Results.Ok(new List<object>());
+                }
+                catch (Exception dbEx)
+                {
+                    return Results.Problem(detail: $"Database Error: {dbEx.Message}", statusCode: 500);
+                }
+            }
         })
         .WithSummary("Get social links for a specialist");
 
         adminGroup.MapPost("/specialists/{specialistId:guid}/social-links", async (Guid specialistId, [FromBody] movaa_project_back.Application.DTOs.Specialist.CreateSocialLinkDto dto, System.Security.Claims.ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
-            if (specialist == null) return Results.NotFound(new { message = "Specialist not found." });
-
-            if (string.IsNullOrWhiteSpace(dto.Url)) return Results.BadRequest(new { message = "URL is required." });
-
-            string normalizedUrl;
             try
             {
-                normalizedUrl = SocialMediaService.NormalizeUrl(dto.Url);
+                var specialist = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
+                if (specialist == null) return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found in database." });
+
+                if (string.IsNullOrWhiteSpace(dto.Url)) return Results.BadRequest(new { message = "URL is required." });
+
+                string normalizedUrl;
+                try
+                {
+                    normalizedUrl = SocialMediaService.NormalizeUrl(dto.Url);
+                }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { message = ex.Message });
+                }
+
+                movaa_project_back.Domain.Enums.SocialPlatform platform;
+                if (!string.IsNullOrWhiteSpace(dto.Platform) && Enum.TryParse<movaa_project_back.Domain.Enums.SocialPlatform>(dto.Platform, true, out var parsedPlatform))
+                {
+                    platform = parsedPlatform;
+                }
+                else
+                {
+                    platform = SocialMediaService.DetectPlatform(normalizedUrl);
+                }
+
+                var existingCount = await dbContext.SpecialistSocialLinks.CountAsync(sl => sl.SpecialistId == specialistId, ct);
+                var displayOrder = dto.DisplayOrder ?? existingCount;
+
+                var duplicate = await dbContext.SpecialistSocialLinks.AnyAsync(sl => sl.SpecialistId == specialistId && sl.Platform == platform, ct);
+                if (duplicate)
+                {
+                    return Results.Conflict(new { message = $"A link for platform '{platform}' already exists for this specialist." });
+                }
+
+                var link = new SpecialistSocialLink(specialistId, platform, normalizedUrl, displayOrder);
+                dbContext.SpecialistSocialLinks.Add(link);
+                await dbContext.SaveChangesAsync(ct);
+
+                var result = new movaa_project_back.Application.DTOs.Specialist.SocialLinkDto(link.Id, link.SpecialistId, link.Platform.ToString(), link.Url, link.DisplayOrder, link.CreatedAt, link.UpdatedAt);
+                return Results.Created($"/api/specialists/{specialistId}/social-links/{link.Id}", result);
             }
-            catch (ArgumentException ex)
+            catch (Exception ex)
             {
-                return Results.BadRequest(new { message = ex.Message });
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"[SocialLinks POST Error]: {ex.Message} -> {innerMsg}");
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        CREATE TABLE IF NOT EXISTS ""SpecialistSocialLinks"" (
+                            ""Id"" UUID PRIMARY KEY,
+                            ""SpecialistId"" UUID NOT NULL,
+                            ""Platform"" TEXT NOT NULL,
+                            ""Url"" TEXT NOT NULL,
+                            ""DisplayOrder"" INT DEFAULT 0,
+                            ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                            ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
+                        );
+                    ", ct);
+                }
+                catch { }
+                return Results.Problem(detail: $"Error saving social link: {innerMsg}", statusCode: 500);
             }
-
-            movaa_project_back.Domain.Enums.SocialPlatform platform;
-            if (!string.IsNullOrWhiteSpace(dto.Platform) && Enum.TryParse<movaa_project_back.Domain.Enums.SocialPlatform>(dto.Platform, true, out var parsedPlatform))
-            {
-                platform = parsedPlatform;
-            }
-            else
-            {
-                platform = SocialMediaService.DetectPlatform(normalizedUrl);
-            }
-
-            var existingCount = await dbContext.SpecialistSocialLinks.CountAsync(sl => sl.SpecialistId == specialistId, ct);
-            var displayOrder = dto.DisplayOrder ?? existingCount;
-
-            var duplicate = await dbContext.SpecialistSocialLinks.AnyAsync(sl => sl.SpecialistId == specialistId && sl.Platform == platform, ct);
-            if (duplicate)
-            {
-                return Results.Conflict(new { message = $"A link for platform '{platform}' already exists for this specialist." });
-            }
-
-            var link = new SpecialistSocialLink(specialistId, platform, normalizedUrl, displayOrder);
-            dbContext.SpecialistSocialLinks.Add(link);
-            await dbContext.SaveChangesAsync(ct);
-
-            var result = new movaa_project_back.Application.DTOs.Specialist.SocialLinkDto(link.Id, link.SpecialistId, link.Platform.ToString(), link.Url, link.DisplayOrder, link.CreatedAt, link.UpdatedAt);
-            return Results.Created($"/api/specialists/{specialistId}/social-links/{link.Id}", result);
         })
         .WithSummary("Create a social link for a specialist");
 
         adminGroup.MapDelete("/specialists/{specialistId:guid}/social-links/{linkId:guid}", async (Guid specialistId, Guid linkId, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var link = await dbContext.SpecialistSocialLinks.FirstOrDefaultAsync(sl => sl.Id == linkId && sl.SpecialistId == specialistId, ct);
-            if (link == null) return Results.NotFound(new { message = "Social link not found." });
+            try
+            {
+                var link = await dbContext.SpecialistSocialLinks.FirstOrDefaultAsync(sl => sl.Id == linkId && sl.SpecialistId == specialistId, ct);
+                if (link == null) return Results.NotFound(new { message = "Social link not found." });
 
-            dbContext.SpecialistSocialLinks.Remove(link);
-            await dbContext.SaveChangesAsync(ct);
-            return Results.Ok(new { message = "Social link deleted successfully." });
+                dbContext.SpecialistSocialLinks.Remove(link);
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(new { message = "Social link deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(detail: $"Error deleting social link: {ex.Message}", statusCode: 500);
+            }
         })
         .WithSummary("Delete a social link for a specialist");
 
