@@ -308,8 +308,8 @@ public static class SpecialistSocialLinkEndpoints
 
         if (org != null || user != null)
         {
-            string name = org?.FullName ?? user?.FullName ?? user?.Phone ?? "Սրահ";
-            string phone = org?.PhoneNumber ?? user?.Phone ?? "";
+            string name = org?.Name ?? user?.FullName ?? user?.Phone ?? "Սրահ";
+            string phone = org?.Phone ?? user?.Phone ?? "";
             string? email = org?.Email ?? user?.Email;
 
             try
@@ -320,7 +320,7 @@ public static class SpecialistSocialLinkEndpoints
                     phone: phone,
                     email: email,
                     salonId: org?.Id,
-                    salonName: org?.FullName
+                    salonName: org?.Name
                 );
 
                 var idProp = typeof(Specialist).GetProperty("Id");
@@ -348,7 +348,7 @@ public static class SpecialistSocialLinkEndpoints
             idProp?.SetValue(tempSpec, specialistId);
             return tempSpec;
         }
-        catch (_)
+        catch (Exception)
         {
             return null;
         }
