@@ -38,6 +38,8 @@ public class Specialist
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
+    public ICollection<SpecialistSocialLink> SocialLinks { get; private set; } = new List<SpecialistSocialLink>();
+
     protected Specialist() { }
 
     public Specialist(

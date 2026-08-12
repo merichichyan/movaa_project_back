@@ -417,7 +417,20 @@ public static class AdminEndpoints
                         sp.IsBlocked,
                         sp.IsActivated,
                         sp.CreatedAt,
-                        sp.UpdatedAt
+                        sp.UpdatedAt,
+                        socialLinks = dbContext.SpecialistSocialLinks
+                            .Where(sl => sl.SpecialistId == sp.Id)
+                            .OrderBy(sl => sl.DisplayOrder)
+                            .Select(sl => new
+                            {
+                                sl.Id,
+                                sl.SpecialistId,
+                                Platform = sl.Platform.ToString(),
+                                sl.Url,
+                                sl.DisplayOrder,
+                                sl.CreatedAt,
+                                sl.UpdatedAt
+                            }).ToList()
                     })
                     .ToListAsync(ct);
                 return Results.Ok(specialists);

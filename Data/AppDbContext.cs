@@ -20,6 +20,7 @@ namespace movaa_project_back.Data
         public DbSet<SalonResource> SalonResources => Set<SalonResource>();
         public DbSet<ServiceResource> ServiceResources => Set<ServiceResource>();
         public DbSet<SpecialistPhoneChangeRequest> SpecialistPhoneChangeRequests => Set<SpecialistPhoneChangeRequest>();
+        public DbSet<SpecialistSocialLink> SpecialistSocialLinks => Set<SpecialistSocialLink>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -123,6 +124,20 @@ namespace movaa_project_back.Data
                 entity.HasOne(sr => sr.Resource)
                       .WithMany()
                       .HasForeignKey(sr => sr.ResourceId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<SpecialistSocialLink>(entity =>
+            {
+                entity.ToTable("SpecialistSocialLinks");
+                entity.HasKey(sl => sl.Id);
+                entity.Property(sl => sl.Url).IsRequired().HasMaxLength(500);
+                entity.Property(sl => sl.Platform).IsRequired().HasConversion<string>();
+                entity.HasIndex(sl => new { sl.SpecialistId, sl.Platform }).IsUnique();
+                entity.HasIndex(sl => sl.SpecialistId);
+                entity.HasOne<Specialist>()
+                      .WithMany(s => s.SocialLinks)
+                      .HasForeignKey(sl => sl.SpecialistId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

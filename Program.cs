@@ -319,6 +319,18 @@ using (var scope = app.Services.CreateScope())
                     ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                     ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
                 );
+
+                CREATE TABLE IF NOT EXISTS ""SpecialistSocialLinks"" (
+                    ""Id"" UUID PRIMARY KEY,
+                    ""SpecialistId"" UUID NOT NULL,
+                    ""Platform"" TEXT NOT NULL,
+                    ""Url"" TEXT NOT NULL,
+                    ""DisplayOrder"" INT DEFAULT 0,
+                    ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_SpecialistSocialLinks_SpecialistId_Platform"" ON ""SpecialistSocialLinks"" (""SpecialistId"", ""Platform"");
+                CREATE INDEX IF NOT EXISTS ""IX_SpecialistSocialLinks_SpecialistId"" ON ""SpecialistSocialLinks"" (""SpecialistId"");
             ");
 
             if (!dbContext.Categories.Any())
@@ -402,6 +414,7 @@ app.MapOfferEndpoints();
 app.MapFavoritesEndpoints();
 app.MapBookingEndpoints();
 app.MapResourceEndpoints();
+app.MapSpecialistSocialLinkEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new

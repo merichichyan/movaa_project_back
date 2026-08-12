@@ -87,12 +87,12 @@ public class AuthService : IAuthService
         var phoneInput = !string.IsNullOrWhiteSpace(request.Phone) ? request.Phone : request.PhoneNumber;
         if (string.IsNullOrWhiteSpace(phoneInput))
         {
-            throw new ArgumentException("Phone number is required.");
+            throw new ArgumentException("Հեռախոսահամարը պարտադիր է:");
         }
 
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            throw new ArgumentException("Password is required.");
+            throw new ArgumentException("Գաղտնաբառը պարտադիր է:");
         }
 
         var pass = request.Password.Trim();
@@ -100,22 +100,12 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            // Fallback: create user if not existing
-            var cleanDigits = System.Text.RegularExpressions.Regex.Replace(phoneInput, @"\D", "");
-            var phoneFormatted = cleanDigits.StartsWith("374") ? "+" + cleanDigits : "+374" + cleanDigits.TrimStart('0');
-            var newUser = new User(
-                phone: phoneFormatted,
-                passwordHash: BCrypt.Net.BCrypt.HashPassword(pass),
-                fullName: "Meri Chichyan",
-                role: "user"
-            );
-            await _userRepository.AddAsync(newUser, ct);
-            user = newUser;
+            throw new UnauthorizedAccessException("Սխալ հեռախոսահամար կամ գաղտնաբառ։");
         }
 
         if (user.IsBlocked)
         {
-            throw new InvalidOperationException("Account is blocked. Please contact support.");
+            throw new InvalidOperationException("Ձեր հաշիվը արգելափակված է։ Խնդրում ենք կապ հաստատել ադմինիստրատորի հետ։");
         }
 
         var isPasswordValid = false;
@@ -139,7 +129,7 @@ public class AuthService : IAuthService
             }
             catch { }
 
-            if (!isPasswordValid && (pass == "Meri.12345" || pass == "123456" || user.PasswordHash == pass || user.PasswordHash == request.Password))
+            if (!isPasswordValid && (user.PasswordHash == pass || user.PasswordHash == request.Password))
             {
                 isPasswordValid = true;
                 user.UpdatePasswordHash(BCrypt.Net.BCrypt.HashPassword(pass));
@@ -149,7 +139,7 @@ public class AuthService : IAuthService
 
         if (!isPasswordValid)
         {
-            throw new UnauthorizedAccessException("Invalid phone number or password.");
+            throw new UnauthorizedAccessException("Սխալ հեռախոսահամար կամ գաղտնաբառ։");
         }
 
         var token = _tokenGenerator.GenerateToken(user);
