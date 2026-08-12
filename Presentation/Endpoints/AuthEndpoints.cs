@@ -30,6 +30,11 @@ public static class AuthEndpoints
             {
                 return Results.Conflict(new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Register Error] {ex}");
+                return Results.BadRequest(new { message = ex.Message });
+            }
         })
         .WithSummary("Register a new user")
         .WithDescription("Registers a new user and returns JWT authentication details.");
@@ -48,6 +53,11 @@ public static class AuthEndpoints
             catch (InvalidOperationException ex)
             {
                 return Results.Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[RegisterUser Error] {ex}");
+                return Results.BadRequest(new { message = ex.Message });
             }
         })
         .WithSummary("Register a client user")
@@ -68,6 +78,11 @@ public static class AuthEndpoints
             {
                 return Results.Conflict(new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ActivateSpecialist Error] {ex}");
+                return Results.BadRequest(new { message = ex.Message });
+            }
         })
         .WithSummary("Activate specialist account")
         .WithDescription("Activates a pre-registered specialist account with phone, email, and password.");
@@ -86,6 +101,11 @@ public static class AuthEndpoints
             catch (InvalidOperationException ex)
             {
                 return Results.Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ActivateSalon Error] {ex}");
+                return Results.BadRequest(new { message = ex.Message });
             }
         })
         .WithSummary("Activate salon/organization account")
