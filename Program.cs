@@ -303,6 +303,16 @@ using (var scope = app.Services.CreateScope())
                     ""UpdatedAt"" timestamp with time zone
                 );
 
+                CREATE TABLE IF NOT EXISTS ""SalonSocialLinks"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""SalonId"" uuid NOT NULL,
+                    ""Platform"" integer NOT NULL,
+                    ""Url"" text NOT NULL,
+                    ""DisplayOrder"" integer NOT NULL DEFAULT 0,
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
+
                 ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""ValidUntil"" text;
                 ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""OrderIndex"" integer DEFAULT 0;
             ");
@@ -538,6 +548,8 @@ app.MapFavoritesEndpoints();
 app.MapBookingEndpoints();
 app.MapResourceEndpoints();
 app.MapOrganizationEndpoints();
+app.MapSpecialistSocialLinkEndpoints();
+app.MapSalonSocialLinkEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new
