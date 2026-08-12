@@ -154,6 +154,11 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhoneNumber"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsActivated"" boolean DEFAULT false;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsApproved"" boolean DEFAULT false;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsActive"" boolean DEFAULT true;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerName"" text;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhone"" text;
 
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""JobTitle"" text;
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""JobTitleHy"" text;
@@ -174,9 +179,11 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""SalonName"" text;
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""AvatarUrl"" text;
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""Rating"" double precision DEFAULT 5.0;
+                ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ReviewCount"" integer DEFAULT 0;
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ServicesJson"" text DEFAULT '[]';
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkplacesJson"" text DEFAULT '[]';
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsActivated"" boolean DEFAULT false;
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone DEFAULT NOW();
 
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""Phone"" text;
