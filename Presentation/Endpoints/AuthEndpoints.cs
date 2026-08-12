@@ -264,14 +264,42 @@ public static class AuthEndpoints
                 return cleanCurrent.Length >= 4 && (sDigits.EndsWith(cleanCurrent) || cleanCurrent.EndsWith(sDigits));
             });
 
-            if (specialist == null)
+            Guid entityId;
+            string entityName;
+            string oldPhone;
+            string oldAddJson;
+
+            if (specialist != null)
             {
-                return Results.NotFound(new { message = "Մասնագետը չի գտնվել:" });
+                entityId = specialist.Id;
+                entityName = specialist.Name;
+                oldPhone = specialist.Phone;
+                oldAddJson = specialist.AdditionalPhonesJson;
+            }
+            else
+            {
+                var salons = await dbContext.Salons.ToListAsync(ct);
+                var salon = salons.FirstOrDefault(s =>
+                {
+                    var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
+                    var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
+                    return cleanCurrent.Length >= 4 && (pDigits.EndsWith(cleanCurrent) || cleanCurrent.EndsWith(pDigits) || oDigits.EndsWith(cleanCurrent) || cleanCurrent.EndsWith(oDigits));
+                });
+
+                if (salon == null)
+                {
+                    return Results.NotFound(new { message = "Սրահը կամ մասնագետը չի գտնվել:" });
+                }
+
+                entityId = salon.Id;
+                entityName = salon.Name;
+                oldPhone = string.IsNullOrWhiteSpace(salon.PhoneNumber) ? salon.OwnerPhoneNumber : salon.PhoneNumber;
+                oldAddJson = "[]";
             }
 
             // Check if there is already a Pending request
             var existingPending = await dbContext.SpecialistPhoneChangeRequests
-                .FirstOrDefaultAsync(r => r.SpecialistId == specialist.Id && r.Status == "Pending", ct);
+                .FirstOrDefaultAsync(r => r.SpecialistId == entityId && r.Status == "Pending", ct);
 
             if (existingPending != null)
             {
@@ -285,10 +313,10 @@ public static class AuthEndpoints
             }
 
             var request = new SpecialistPhoneChangeRequest(
-                specialistId: specialist.Id,
-                specialistName: specialist.Name,
-                oldPrimaryPhone: specialist.Phone,
-                oldAdditionalPhonesJson: specialist.AdditionalPhonesJson,
+                specialistId: entityId,
+                specialistName: entityName,
+                oldPrimaryPhone: oldPhone,
+                oldAdditionalPhonesJson: oldAddJson,
                 newPrimaryPhone: dto.NewPrimaryPhone.Trim(),
                 newAdditionalPhonesJson: newAddJson
             );
@@ -318,14 +346,34 @@ public static class AuthEndpoints
                 return cleanDigits.Length >= 4 && (sDigits.EndsWith(cleanDigits) || cleanDigits.EndsWith(sDigits));
             });
 
-            if (specialist == null)
+            Guid entityId = Guid.Empty;
+            if (specialist != null)
+            {
+                entityId = specialist.Id;
+            }
+            else
+            {
+                var salons = await dbContext.Salons.ToListAsync(ct);
+                var salon = salons.FirstOrDefault(s =>
+                {
+                    var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
+                    var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
+                    return cleanDigits.Length >= 4 && (pDigits.EndsWith(cleanDigits) || cleanDigits.EndsWith(pDigits) || oDigits.EndsWith(cleanDigits) || cleanDigits.EndsWith(oDigits));
+                });
+                if (salon != null)
+                {
+                    entityId = salon.Id;
+                }
+            }
+
+            if (entityId == Guid.Empty)
             {
                 return Results.Ok(new { hasPending = false });
             }
 
             var latest = await dbContext.SpecialistPhoneChangeRequests
                 .OrderByDescending(r => r.CreatedAt)
-                .FirstOrDefaultAsync(r => r.SpecialistId == specialist.Id, ct);
+                .FirstOrDefaultAsync(r => r.SpecialistId == entityId, ct);
 
             if (latest == null)
             {
