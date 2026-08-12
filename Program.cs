@@ -10,7 +10,18 @@ using movaa_project_back.Domain.Interfaces;
 using movaa_project_back.Infrastructure.Auth;
 using movaa_project_back.Presentation.Endpoints;
 
-var builder = WebApplication.CreateBuilder(args);
+var webAppOptions = new WebApplicationOptions
+{
+    Args = args
+};
+var builder = WebApplication.CreateBuilder(webAppOptions);
+builder.Host.ConfigureAppConfiguration((hostingContext, config) =>
+{
+    foreach (var source in config.Sources.OfType<Microsoft.Extensions.Configuration.FileConfigurationSource>())
+    {
+        source.ReloadOnChange = false;
+    }
+});
 
 // Increase Max Request Body Size to 50 MB for Base64 Logo uploads
 builder.WebHost.ConfigureKestrel(options =>
