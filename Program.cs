@@ -217,20 +217,25 @@ using (var scope = app.Services.CreateScope())
                     ""ImageUrl"" text,
                     ""ValidUntil"" text,
                     ""OrderIndex"" integer DEFAULT 0,
-                CREATE TABLE IF NOT EXISTS "Admins" (
-                    "Id" uuid PRIMARY KEY,
-                    "Username" text NOT NULL,
-                    "PasswordHash" text NOT NULL,
-                    "FullName" text NOT NULL,
-                    "Role" text NOT NULL DEFAULT 'admin',
-                    "Email" text,
-                    "CreatedAt" timestamp with time zone DEFAULT NOW(),
-                    "UpdatedAt" timestamp with time zone
+                    ""IsActive"" boolean DEFAULT true,
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
                 );
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_Admins_Username" ON "Admins" ("Username");
 
-                ALTER TABLE "Offers" ADD COLUMN IF NOT EXISTS "ValidUntil" text;
-                ALTER TABLE "Offers" ADD COLUMN IF NOT EXISTS "OrderIndex" integer DEFAULT 0;
+                CREATE TABLE IF NOT EXISTS ""Admins"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""Username"" text NOT NULL,
+                    ""PasswordHash"" text NOT NULL,
+                    ""FullName"" text NOT NULL,
+                    ""Role"" text NOT NULL DEFAULT 'admin',
+                    ""Email"" text,
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Admins_Username"" ON ""Admins"" (""Username"");
+
+                ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""ValidUntil"" text;
+                ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""OrderIndex"" integer DEFAULT 0;
             ");
         }
         catch (Exception migrationEx)
