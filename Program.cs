@@ -217,18 +217,56 @@ using (var scope = app.Services.CreateScope())
                     ""ImageUrl"" text,
                     ""ValidUntil"" text,
                     ""OrderIndex"" integer DEFAULT 0,
-                    ""IsActive"" boolean DEFAULT true,
-                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
-                    ""UpdatedAt"" timestamp with time zone
+                CREATE TABLE IF NOT EXISTS "Admins" (
+                    "Id" uuid PRIMARY KEY,
+                    "Username" text NOT NULL,
+                    "PasswordHash" text NOT NULL,
+                    "FullName" text NOT NULL,
+                    "Role" text NOT NULL DEFAULT 'admin',
+                    "Email" text,
+                    "CreatedAt" timestamp with time zone DEFAULT NOW(),
+                    "UpdatedAt" timestamp with time zone
                 );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_Admins_Username" ON "Admins" ("Username");
 
-                ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""ValidUntil"" text;
-                ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""OrderIndex"" integer DEFAULT 0;
+                ALTER TABLE "Offers" ADD COLUMN IF NOT EXISTS "ValidUntil" text;
+                ALTER TABLE "Offers" ADD COLUMN IF NOT EXISTS "OrderIndex" integer DEFAULT 0;
             ");
         }
         catch (Exception migrationEx)
         {
             Console.WriteLine($"DB Auto-Migration notice: {migrationEx.Message}");
+        }
+
+        // Seed default Root Admin account in dedicated Admins table
+        try
+        {
+            var rootAdmin = dbContext.Admins.FirstOrDefault(a => a.Username == "rootadmin");
+            if (rootAdmin == null)
+            {
+                var newAdmin = new movaa_project_back.Domain.Entities.Admin(
+                    username: "rootadmin",
+                    passwordHash: BCrypt.Net.BCrypt.HashPassword("Admin2026!"),
+                    fullName: "Root Administrator",
+                    email: "rootadmin@movaa.com"
+                );
+                dbContext.Admins.Add(newAdmin);
+                dbContext.SaveChanges();
+                Console.WriteLine("Seeded Root Admin 'rootadmin' in Admins table successfully.");
+            }
+            else
+            {
+                if (!BCrypt.Net.BCrypt.Verify("Admin2026!", rootAdmin.PasswordHash))
+                {
+                    rootAdmin.UpdatePasswordHash(BCrypt.Net.BCrypt.HashPassword("Admin2026!"));
+                    dbContext.SaveChanges();
+                    Console.WriteLine("Updated Root Admin 'rootadmin' password hash in Admins table.");
+                }
+            }
+        }
+        catch (Exception adminSeedEx)
+        {
+            Console.WriteLine($"Root Admin seeding notice: {adminSeedEx.Message}");
         }
 
         // Seed default Admin account if not existing in Users table

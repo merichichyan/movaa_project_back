@@ -4,6 +4,11 @@ public record ChangePasswordRequestDto(
     string NewPassword
 );
 
+public record AdminLoginRequestDto(
+    string Username,
+    string Password
+);
+
 public record BlockToggleDto(
     bool IsBlocked
 );

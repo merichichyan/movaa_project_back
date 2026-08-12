@@ -13,6 +13,60 @@ public static class AdminEndpoints
     {
         var adminGroup = app.MapGroup("/api").WithTags("Admin");
 
+        // ------------------ ADMIN AUTHENTICATION ------------------
+        adminGroup.MapPost("/admin/login", async ([FromBody] AdminLoginRequestDto dto, AppDbContext dbContext, movaa_project_back.Domain.Interfaces.IJwtTokenGenerator tokenGenerator, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password))
+            {
+                return Results.BadRequest(new { message = "Մուտքանունը և գաղտնաբառը պարտադիր են:" });
+            }
+
+            var username = dto.Username.Trim();
+            var password = dto.Password.Trim();
+
+            // 1. Check dedicated Admins table first
+            var admin = await dbContext.Admins.FirstOrDefaultAsync(a => a.Username.ToLower() == username.ToLower(), ct);
+            if (admin != null && BCrypt.Net.BCrypt.Verify(password, admin.PasswordHash))
+            {
+                var token = tokenGenerator.GenerateAdminToken(admin);
+                return Results.Ok(new
+                {
+                    token,
+                    user = new
+                    {
+                        id = admin.Id,
+                        username = admin.Username,
+                        fullName = admin.FullName,
+                        email = admin.Email,
+                        role = admin.Role
+                    }
+                });
+            }
+
+            // 2. Fallback check in Users table for legacy admin credentials
+            var userAdmin = await dbContext.Users.FirstOrDefaultAsync(u => u.Phone.ToLower() == username.ToLower(), ct);
+            if (userAdmin != null && userAdmin.Role == "admin" && BCrypt.Net.BCrypt.Verify(password, userAdmin.PasswordHash))
+            {
+                var token = tokenGenerator.GenerateToken(userAdmin);
+                return Results.Ok(new
+                {
+                    token,
+                    user = new
+                    {
+                        id = userAdmin.Id,
+                        username = userAdmin.Phone,
+                        fullName = userAdmin.FullName,
+                        email = userAdmin.Email,
+                        role = userAdmin.Role
+                    }
+                });
+            }
+
+            return Results.Unauthorized();
+        })
+        .WithSummary("Admin Login")
+        .WithDescription("Authenticates rootadmin or administrators using dedicated Admins table.");
+
         // ------------------ USERS MANAGEMENT ------------------
         adminGroup.MapGet("/users", async (AppDbContext dbContext, CancellationToken ct) =>
         {
