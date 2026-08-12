@@ -201,4 +201,15 @@ public class Salon
         IsActivated = true;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void UpdatePhone(string newPhone)
+    {
+        if (!string.IsNullOrWhiteSpace(newPhone))
+        {
+            PhoneNumber = newPhone.Trim();
+            OwnerPhoneNumber = newPhone.Trim();
+            OwnerPhone = newPhone.Trim();
+            UpdatedAt = DateTime.UtcNow;
+        }
+    }
 }
