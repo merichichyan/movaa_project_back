@@ -1029,14 +1029,17 @@ public static class AdminEndpoints
         .WithSummary("Delete a category");
 
         // Phone Change Requests Management (Specialist & Salon)
-        adminGroup.MapGet("/specialist-phone-requests", GetPhoneChangeRequests);
+        adminGroup.MapGet("/phone-requests", GetPhoneChangeRequests);
         adminGroup.MapGet("/phone-change-requests", GetPhoneChangeRequests);
+        adminGroup.MapGet("/specialist-phone-requests", GetPhoneChangeRequests);
 
-        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/approve", ApprovePhoneChangeRequest);
+        adminGroup.MapPost("/phone-requests/{id:guid}/approve", ApprovePhoneChangeRequest);
         adminGroup.MapPost("/phone-change-requests/{id:guid}/approve", ApprovePhoneChangeRequest);
+        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/approve", ApprovePhoneChangeRequest);
 
-        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/reject", RejectPhoneChangeRequest);
+        adminGroup.MapPost("/phone-requests/{id:guid}/reject", RejectPhoneChangeRequest);
         adminGroup.MapPost("/phone-change-requests/{id:guid}/reject", RejectPhoneChangeRequest);
+        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/reject", RejectPhoneChangeRequest);
 
         async Task<IResult> GetPhoneChangeRequests(AppDbContext dbContext, CancellationToken ct)
         {
