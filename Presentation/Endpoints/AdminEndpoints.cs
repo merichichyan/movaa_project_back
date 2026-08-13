@@ -439,6 +439,86 @@ public static class AdminEndpoints
         })
         .WithSummary("Block or unblock a salon");
 
+        // ------------------ BRANCHES MANAGEMENT ------------------
+        adminGroup.MapGet("/salons/{id:guid}/branches", async (Guid id, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            try
+            {
+                var branches = await dbContext.Branches
+                    .Where(b => b.OrganizationId == id)
+                    .OrderByDescending(b => b.CreatedAt)
+                    .ToListAsync(ct);
+
+                return Results.Ok(branches);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching branches for salon {id}: {ex}");
+                return Results.Ok(new List<object>());
+            }
+        })
+        .WithSummary("Get branches for a salon");
+
+        adminGroup.MapPost("/salons/{id:guid}/branches", async (Guid id, [FromBody] movaa_project_back.Application.DTOs.Organization.CreateBranchDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Address))
+            {
+                return Results.BadRequest(new { message = "Branch name and address are required." });
+            }
+
+            var catJson = dto.Categories != null ? System.Text.Json.JsonSerializer.Serialize(dto.Categories) : "[]";
+            var branch = new Branch(
+                organizationId: id,
+                name: dto.Name,
+                address: dto.Address,
+                phone: dto.Phone ?? string.Empty,
+                latitude: dto.Latitude,
+                longitude: dto.Longitude,
+                email: dto.Email,
+                workingHours: dto.WorkingHours ?? "09:00 - 18:00",
+                categoriesJson: catJson
+            );
+
+            dbContext.Branches.Add(branch);
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(branch);
+        })
+        .WithSummary("Create a new branch for a salon");
+
+        adminGroup.MapPut("/branches/{id:guid}", async (Guid id, [FromBody] movaa_project_back.Application.DTOs.Organization.UpdateBranchDto dto, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == id, ct);
+            if (branch == null) return Results.NotFound(new { message = "Branch not found." });
+
+            var catJson = dto.Categories != null ? System.Text.Json.JsonSerializer.Serialize(dto.Categories) : null;
+            branch.Update(
+                name: dto.Name,
+                address: dto.Address,
+                phone: dto.Phone,
+                latitude: dto.Latitude,
+                longitude: dto.Longitude,
+                email: dto.Email,
+                workingHours: dto.WorkingHours,
+                status: dto.Status,
+                categoriesJson: catJson
+            );
+
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(branch);
+        })
+        .WithSummary("Update branch details");
+
+        adminGroup.MapDelete("/branches/{id:guid}", async (Guid id, AppDbContext dbContext, CancellationToken ct) =>
+        {
+            var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == id, ct);
+            if (branch == null) return Results.NotFound(new { message = "Branch not found." });
+
+            dbContext.Branches.Remove(branch);
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Branch deleted successfully." });
+        })
+        .WithSummary("Delete a branch");
+
         // ------------------ SPECIALISTS MANAGEMENT ------------------
         adminGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool activeOnly = false) =>
         {

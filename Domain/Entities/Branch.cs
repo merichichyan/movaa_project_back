@@ -14,6 +14,7 @@ namespace movaa_project_back.Domain.Entities
         public string Phone { get; private set; } = string.Empty;
         public string? Email { get; private set; }
         public string WorkingHours { get; private set; } = "09:00 - 18:00";
+        public string CategoriesJson { get; private set; } = "[]";
         public string Status { get; private set; } = "ACTIVE"; // ACTIVE, TEMPORARILY_CLOSED, INACTIVE
         public DateTime CreatedAt { get; private set; }
         public DateTime? UpdatedAt { get; private set; }
@@ -30,7 +31,8 @@ namespace movaa_project_back.Domain.Entities
             double? longitude = null,
             string? email = null,
             string workingHours = "09:00 - 18:00",
-            string status = "ACTIVE")
+            string status = "ACTIVE",
+            string? categoriesJson = null)
         {
             Id = Guid.NewGuid();
             OrganizationId = organizationId;
@@ -43,6 +45,7 @@ namespace movaa_project_back.Domain.Entities
             Email = email?.Trim().ToLowerInvariant();
             WorkingHours = !string.IsNullOrWhiteSpace(workingHours) ? workingHours.Trim() : "09:00 - 18:00";
             Status = !string.IsNullOrWhiteSpace(status) ? status.Trim().ToUpperInvariant() : "ACTIVE";
+            CategoriesJson = !string.IsNullOrWhiteSpace(categoriesJson) ? categoriesJson.Trim() : "[]";
             CreatedAt = DateTime.UtcNow;
         }
 
@@ -54,7 +57,8 @@ namespace movaa_project_back.Domain.Entities
             double? longitude = null,
             string? email = null,
             string? workingHours = null,
-            string? status = null)
+            string? status = null,
+            string? categoriesJson = null)
         {
             if (!string.IsNullOrWhiteSpace(name)) Name = name.Trim();
             if (!string.IsNullOrWhiteSpace(address)) Address = address.Trim();
@@ -64,6 +68,7 @@ namespace movaa_project_back.Domain.Entities
             Email = email?.Trim().ToLowerInvariant() ?? Email;
             if (!string.IsNullOrWhiteSpace(workingHours)) WorkingHours = workingHours.Trim();
             if (!string.IsNullOrWhiteSpace(status)) Status = status.Trim().ToUpperInvariant();
+            if (categoriesJson != null) CategoriesJson = categoriesJson.Trim();
             UpdatedAt = DateTime.UtcNow;
         }
 

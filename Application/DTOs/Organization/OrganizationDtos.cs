@@ -29,7 +29,8 @@ namespace movaa_project_back.Application.DTOs.Organization
         string? Email,
         string? WorkingHours,
         double? Latitude,
-        double? Longitude
+        double? Longitude,
+        List<string>? Categories
     );
 
     public record UpdateBranchDto(
@@ -40,7 +41,8 @@ namespace movaa_project_back.Application.DTOs.Organization
         string? WorkingHours,
         string? Status,
         double? Latitude,
-        double? Longitude
+        double? Longitude,
+        List<string>? Categories
     );
 
     public record InviteSpecialistDto(
