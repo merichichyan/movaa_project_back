@@ -13,6 +13,7 @@ public class Salon
     public string NameRu { get; private set; } = string.Empty;
 
     public string PhoneNumber { get; private set; } = string.Empty;
+    public string AdditionalPhonesJson { get; private set; } = "[]";
     public string? Email { get; private set; }
 
     public string Address { get; private set; } = string.Empty;
@@ -85,7 +86,8 @@ public class Salon
         string? taxId = null,
         bool isApproved = false,
         bool isActive = true,
-        bool isBlocked = false)
+        bool isBlocked = false,
+        string? additionalPhonesJson = null)
     {
         Id = Guid.NewGuid();
         Name = !string.IsNullOrWhiteSpace(name) ? name.Trim() : "Salon Name";
@@ -99,6 +101,7 @@ public class Salon
         AddressRu = !string.IsNullOrWhiteSpace(addressRu) ? addressRu.Trim() : string.Empty;
 
         PhoneNumber = !string.IsNullOrWhiteSpace(phoneNumber) ? phoneNumber.Trim() : "+37400000000";
+        AdditionalPhonesJson = !string.IsNullOrWhiteSpace(additionalPhonesJson) ? additionalPhonesJson.Trim() : "[]";
         Category = !string.IsNullOrWhiteSpace(category) ? category.Trim() : "Salon";
         WorkingHours = !string.IsNullOrWhiteSpace(workingHours) ? workingHours.Trim() : "09:00 - 18:00";
         Email = email?.Trim();
@@ -151,7 +154,8 @@ public class Salon
         string? taxId = null,
         bool? isApproved = null,
         bool? isActive = null,
-        bool? isBlocked = null)
+        bool? isBlocked = null,
+        string? additionalPhonesJson = null)
     {
         if (!string.IsNullOrWhiteSpace(name)) Name = name.Trim();
         NameHy = !string.IsNullOrWhiteSpace(nameHy) ? nameHy.Trim() : Name;
@@ -164,6 +168,7 @@ public class Salon
         AddressRu = !string.IsNullOrWhiteSpace(addressRu) ? addressRu.Trim() : string.Empty;
 
         if (!string.IsNullOrWhiteSpace(phoneNumber)) PhoneNumber = phoneNumber.Trim();
+        if (additionalPhonesJson != null) AdditionalPhonesJson = !string.IsNullOrWhiteSpace(additionalPhonesJson) ? additionalPhonesJson.Trim() : "[]";
         if (!string.IsNullOrWhiteSpace(category)) Category = category.Trim();
         if (!string.IsNullOrWhiteSpace(workingHours)) WorkingHours = workingHours.Trim();
         Email = email?.Trim() ?? Email;
@@ -211,5 +216,17 @@ public class Salon
             OwnerPhone = newPhone.Trim();
             UpdatedAt = DateTime.UtcNow;
         }
+    }
+
+    public void UpdatePhones(string primaryPhone, string? additionalPhonesJson)
+    {
+        if (!string.IsNullOrWhiteSpace(primaryPhone))
+        {
+            PhoneNumber = primaryPhone.Trim();
+            OwnerPhoneNumber = primaryPhone.Trim();
+            OwnerPhone = primaryPhone.Trim();
+        }
+        AdditionalPhonesJson = !string.IsNullOrWhiteSpace(additionalPhonesJson) ? additionalPhonesJson.Trim() : "[]";
+        UpdatedAt = DateTime.UtcNow;
     }
 }

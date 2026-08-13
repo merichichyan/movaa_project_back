@@ -294,7 +294,7 @@ public static class AuthEndpoints
                 entityId = salon.Id;
                 entityName = salon.Name;
                 oldPhone = string.IsNullOrWhiteSpace(salon.PhoneNumber) ? salon.OwnerPhoneNumber : salon.PhoneNumber;
-                oldAddJson = "[]";
+                oldAddJson = salon.AdditionalPhonesJson ?? "[]";
             }
 
             // Check if there is already a Pending request

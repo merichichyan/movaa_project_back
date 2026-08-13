@@ -45,7 +45,9 @@ public record CreateSalonDto(
     string? OwnerFullName,
     string? OwnerPhone,
     string? OwnerPhoneNumber,
-    string? TaxId
+    string? TaxId,
+    List<string>? AdditionalPhones = null,
+    string? AdditionalPhonesJson = null
 );
 
 public record UpdateSalonDto(
@@ -74,7 +76,9 @@ public record UpdateSalonDto(
     string? OwnerFullName,
     string? OwnerPhone,
     string? OwnerPhoneNumber,
-    string? TaxId
+    string? TaxId,
+    List<string>? AdditionalPhones = null,
+    string? AdditionalPhonesJson = null
 );
 
 public record CreateSpecialistDto(

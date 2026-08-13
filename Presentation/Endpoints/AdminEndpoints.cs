@@ -268,6 +268,12 @@ public static class AdminEndpoints
             var hostUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
             var savedLogoUrl = ImageStorageHelper.SaveBase64Image(dto.LogoUrl, env.ContentRootPath, hostUrl, "salons");
 
+            var createAddJson = dto.AdditionalPhonesJson;
+            if (string.IsNullOrWhiteSpace(createAddJson) && dto.AdditionalPhones != null)
+            {
+                createAddJson = System.Text.Json.JsonSerializer.Serialize(dto.AdditionalPhones);
+            }
+
             var salon = new Salon(
                 name: dto.Name,
                 address: dto.Address,
@@ -291,7 +297,8 @@ public static class AdminEndpoints
                 ownerNameEn: dto.OwnerNameEn,
                 ownerNameRu: dto.OwnerNameRu,
                 ownerPhoneNumber: ownerPhoneVal,
-                taxId: taxIdVal
+                taxId: taxIdVal,
+                additionalPhonesJson: createAddJson
             );
 
             try
@@ -309,6 +316,7 @@ public static class AdminEndpoints
                 {
                     await dbContext.Database.ExecuteSqlRawAsync(@"
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""PhoneNumber"" text;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""AdditionalPhonesJson"" text DEFAULT '[]';
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Category"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text;
                         ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""Name"" text;
@@ -357,6 +365,12 @@ public static class AdminEndpoints
             var ownerPhoneVal = !string.IsNullOrWhiteSpace(dto.OwnerPhoneNumber) ? dto.OwnerPhoneNumber : dto.OwnerPhone;
             var ownerNameVal = !string.IsNullOrWhiteSpace(dto.OwnerFullName) ? dto.OwnerFullName : dto.OwnerName;
 
+            var updateAddJson = dto.AdditionalPhonesJson;
+            if (string.IsNullOrWhiteSpace(updateAddJson) && dto.AdditionalPhones != null)
+            {
+                updateAddJson = System.Text.Json.JsonSerializer.Serialize(dto.AdditionalPhones);
+            }
+
             salon.Update(
                 name: dto.Name,
                 address: dto.Address,
@@ -380,7 +394,8 @@ public static class AdminEndpoints
                 ownerNameEn: dto.OwnerNameEn,
                 ownerNameRu: dto.OwnerNameRu,
                 ownerPhoneNumber: ownerPhoneVal,
-                taxId: dto.TaxId
+                taxId: dto.TaxId,
+                additionalPhonesJson: updateAddJson
             );
 
             try
@@ -1013,17 +1028,45 @@ public static class AdminEndpoints
         })
         .WithSummary("Delete a category");
 
-        // Specialist Phone Change Requests Management
-        adminGroup.MapGet("/specialist-phone-requests", async (AppDbContext dbContext, CancellationToken ct) =>
+        // Phone Change Requests Management (Specialist & Salon)
+        adminGroup.MapGet("/specialist-phone-requests", GetPhoneChangeRequests);
+        adminGroup.MapGet("/phone-change-requests", GetPhoneChangeRequests);
+
+        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/approve", ApprovePhoneChangeRequest);
+        adminGroup.MapPost("/phone-change-requests/{id:guid}/approve", ApprovePhoneChangeRequest);
+
+        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/reject", RejectPhoneChangeRequest);
+        adminGroup.MapPost("/phone-change-requests/{id:guid}/reject", RejectPhoneChangeRequest);
+
+        async Task<IResult> GetPhoneChangeRequests(AppDbContext dbContext, CancellationToken ct)
         {
             var requests = await dbContext.SpecialistPhoneChangeRequests
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync(ct);
-            return Results.Ok(requests);
-        })
-        .WithSummary("Get all specialist phone change requests");
 
-        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/approve", async (Guid id, AppDbContext dbContext, CancellationToken ct) =>
+            var salonIds = await dbContext.Salons.Select(s => s.Id).ToListAsync(ct);
+            var specialistIds = await dbContext.Specialists.Select(s => s.Id).ToListAsync(ct);
+
+            var result = requests.Select(r => new
+            {
+                r.Id,
+                r.SpecialistId,
+                r.SpecialistName,
+                r.OldPrimaryPhone,
+                r.OldAdditionalPhonesJson,
+                r.NewPrimaryPhone,
+                r.NewAdditionalPhonesJson,
+                r.Status,
+                r.RejectionNote,
+                r.CreatedAt,
+                r.UpdatedAt,
+                Role = salonIds.Contains(r.SpecialistId) ? "SALON" : (specialistIds.Contains(r.SpecialistId) ? "SPECIALIST" : "USER")
+            });
+
+            return Results.Ok(result);
+        }
+
+        async Task<IResult> ApprovePhoneChangeRequest(Guid id, AppDbContext dbContext, CancellationToken ct)
         {
             var request = await dbContext.SpecialistPhoneChangeRequests.FirstOrDefaultAsync(r => r.Id == id, ct);
             if (request == null) return Results.NotFound(new { message = "Request not found." });
@@ -1041,7 +1084,7 @@ public static class AdminEndpoints
                 var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == request.SpecialistId, ct);
                 if (salon != null)
                 {
-                    salon.UpdatePhone(formattedNew);
+                    salon.UpdatePhones(formattedNew, request.NewAdditionalPhonesJson);
                 }
             }
 
@@ -1061,10 +1104,9 @@ public static class AdminEndpoints
             request.Approve();
             await dbContext.SaveChangesAsync(ct);
             return Results.Ok(new { message = "Phone change request approved successfully.", request });
-        })
-        .WithSummary("Approve specialist or salon phone change request");
+        }
 
-        adminGroup.MapPost("/specialist-phone-requests/{id:guid}/reject", async (Guid id, [FromBody] RejectPhoneRequestDto? body, AppDbContext dbContext, CancellationToken ct) =>
+        async Task<IResult> RejectPhoneChangeRequest(Guid id, [FromBody] RejectPhoneRequestDto? body, AppDbContext dbContext, CancellationToken ct)
         {
             var request = await dbContext.SpecialistPhoneChangeRequests.FirstOrDefaultAsync(r => r.Id == id, ct);
             if (request == null) return Results.NotFound(new { message = "Request not found." });
@@ -1072,8 +1114,7 @@ public static class AdminEndpoints
             request.Reject(body?.Note, body?.NoteHy, body?.NoteEn, body?.NoteRu);
             await dbContext.SaveChangesAsync(ct);
             return Results.Ok(new { message = "Phone change request rejected.", request });
-        })
-        .WithSummary("Reject specialist phone change request");
+        }
 
         return app;
     }
