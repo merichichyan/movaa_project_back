@@ -77,24 +77,6 @@ public static class AdminOfferEndpoints
             Guid? finalSpecialistId = dto.SpecialistId;
             string? finalSpecialistName = dto.SpecialistName;
 
-            if (finalSpecialistId.HasValue)
-            {
-                var spec = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == finalSpecialistId.Value, ct);
-                if (spec != null)
-                {
-                    finalSpecialistName ??= spec.Name;
-                    if (finalSalonId.HasValue && spec.SalonId.HasValue && spec.SalonId != finalSalonId.Value)
-                    {
-                        return Results.BadRequest(new { message = "Selected specialist does not belong to the specified salon." });
-                    }
-                    if (!finalSalonId.HasValue && spec.SalonId.HasValue)
-                    {
-                        finalSalonId = spec.SalonId;
-                        finalSalonName ??= spec.SalonName;
-                    }
-                }
-            }
-
             if (finalSalonId.HasValue && string.IsNullOrWhiteSpace(finalSalonName))
             {
                 var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == finalSalonId.Value, ct);
@@ -106,6 +88,40 @@ public static class AdminOfferEndpoints
                 {
                     var org = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == finalSalonId.Value, ct);
                     if (org != null) finalSalonName = org.Name;
+                }
+            }
+
+            if (finalSpecialistId.HasValue)
+            {
+                var spec = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == finalSpecialistId.Value, ct);
+                if (spec != null)
+                {
+                    finalSpecialistName ??= spec.Name;
+                    bool isSameSalon = false;
+                    if (spec.SalonId.HasValue && finalSalonId.HasValue && spec.SalonId == finalSalonId.Value)
+                    {
+                        isSameSalon = true;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(spec.SalonName) && !string.IsNullOrWhiteSpace(finalSalonName) &&
+                             string.Equals(spec.SalonName.Trim(), finalSalonName.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        isSameSalon = true;
+                    }
+                    else if (!spec.SalonId.HasValue || !finalSalonId.HasValue)
+                    {
+                        isSameSalon = true;
+                    }
+
+                    if (!isSameSalon)
+                    {
+                        return Results.BadRequest(new { message = "Selected specialist does not belong to the specified salon." });
+                    }
+
+                    if (!finalSalonId.HasValue && spec.SalonId.HasValue)
+                    {
+                        finalSalonId = spec.SalonId;
+                        finalSalonName ??= spec.SalonName;
+                    }
                 }
             }
 
@@ -156,24 +172,6 @@ public static class AdminOfferEndpoints
             Guid? finalSpecialistId = dto.SpecialistId;
             string? finalSpecialistName = dto.SpecialistName;
 
-            if (finalSpecialistId.HasValue)
-            {
-                var spec = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == finalSpecialistId.Value, ct);
-                if (spec != null)
-                {
-                    finalSpecialistName ??= spec.Name;
-                    if (finalSalonId.HasValue && spec.SalonId.HasValue && spec.SalonId != finalSalonId.Value)
-                    {
-                        return Results.BadRequest(new { message = "Selected specialist does not belong to the specified salon." });
-                    }
-                    if (!finalSalonId.HasValue && spec.SalonId.HasValue)
-                    {
-                        finalSalonId = spec.SalonId;
-                        finalSalonName ??= spec.SalonName;
-                    }
-                }
-            }
-
             if (finalSalonId.HasValue && string.IsNullOrWhiteSpace(finalSalonName))
             {
                 var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == finalSalonId.Value, ct);
@@ -185,6 +183,40 @@ public static class AdminOfferEndpoints
                 {
                     var org = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == finalSalonId.Value, ct);
                     if (org != null) finalSalonName = org.Name;
+                }
+            }
+
+            if (finalSpecialistId.HasValue)
+            {
+                var spec = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == finalSpecialistId.Value, ct);
+                if (spec != null)
+                {
+                    finalSpecialistName ??= spec.Name;
+                    bool isSameSalon = false;
+                    if (spec.SalonId.HasValue && finalSalonId.HasValue && spec.SalonId == finalSalonId.Value)
+                    {
+                        isSameSalon = true;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(spec.SalonName) && !string.IsNullOrWhiteSpace(finalSalonName) &&
+                             string.Equals(spec.SalonName.Trim(), finalSalonName.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        isSameSalon = true;
+                    }
+                    else if (!spec.SalonId.HasValue || !finalSalonId.HasValue)
+                    {
+                        isSameSalon = true;
+                    }
+
+                    if (!isSameSalon)
+                    {
+                        return Results.BadRequest(new { message = "Selected specialist does not belong to the specified salon." });
+                    }
+
+                    if (!finalSalonId.HasValue && spec.SalonId.HasValue)
+                    {
+                        finalSalonId = spec.SalonId;
+                        finalSalonName ??= spec.SalonName;
+                    }
                 }
             }
 
