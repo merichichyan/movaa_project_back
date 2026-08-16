@@ -97,26 +97,6 @@ public static class AdminOfferEndpoints
                 if (spec != null)
                 {
                     finalSpecialistName ??= spec.Name;
-                    bool isSameSalon = false;
-                    if (spec.SalonId.HasValue && finalSalonId.HasValue && spec.SalonId == finalSalonId.Value)
-                    {
-                        isSameSalon = true;
-                    }
-                    else if (!string.IsNullOrWhiteSpace(spec.SalonName) && !string.IsNullOrWhiteSpace(finalSalonName) &&
-                             string.Equals(spec.SalonName.Trim(), finalSalonName.Trim(), StringComparison.OrdinalIgnoreCase))
-                    {
-                        isSameSalon = true;
-                    }
-                    else if (!spec.SalonId.HasValue || !finalSalonId.HasValue)
-                    {
-                        isSameSalon = true;
-                    }
-
-                    if (!isSameSalon)
-                    {
-                        return Results.BadRequest(new { message = "Selected specialist does not belong to the specified salon." });
-                    }
-
                     if (!finalSalonId.HasValue && spec.SalonId.HasValue)
                     {
                         finalSalonId = spec.SalonId;
@@ -192,26 +172,6 @@ public static class AdminOfferEndpoints
                 if (spec != null)
                 {
                     finalSpecialistName ??= spec.Name;
-                    bool isSameSalon = false;
-                    if (spec.SalonId.HasValue && finalSalonId.HasValue && spec.SalonId == finalSalonId.Value)
-                    {
-                        isSameSalon = true;
-                    }
-                    else if (!string.IsNullOrWhiteSpace(spec.SalonName) && !string.IsNullOrWhiteSpace(finalSalonName) &&
-                             string.Equals(spec.SalonName.Trim(), finalSalonName.Trim(), StringComparison.OrdinalIgnoreCase))
-                    {
-                        isSameSalon = true;
-                    }
-                    else if (!spec.SalonId.HasValue || !finalSalonId.HasValue)
-                    {
-                        isSameSalon = true;
-                    }
-
-                    if (!isSameSalon)
-                    {
-                        return Results.BadRequest(new { message = "Selected specialist does not belong to the specified salon." });
-                    }
-
                     if (!finalSalonId.HasValue && spec.SalonId.HasValue)
                     {
                         finalSalonId = spec.SalonId;
