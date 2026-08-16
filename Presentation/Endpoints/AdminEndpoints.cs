@@ -645,8 +645,8 @@ public static class AdminEndpoints
             }
         }
 
-        apiGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? true, salonId: salonId));
-        adminGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? false, salonId: salonId));
+        app.MapGet("/api/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? true, salonId: salonId));
+        adminGroup.MapGet("/admin/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? false, salonId: salonId));
 
         adminGroup.MapPost("/specialists", async ([FromBody] CreateSpecialistDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
