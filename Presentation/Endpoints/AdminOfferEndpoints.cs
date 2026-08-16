@@ -13,7 +13,7 @@ public static class AdminOfferEndpoints
         var apiGroup = app.MapGroup("/api");
 
         // Function to get active or all offers
-        async Task<IResult> GetOffersHandler(AppDbContext dbContext, CancellationToken ct, bool activeOnly = false, Guid? specialistId = null, Guid? salonId = null)
+        async Task<IResult> GetOffersHandler(AppDbContext dbContext, CancellationToken ct, bool activeOnly = false, Guid? specialistId = null, Guid? salonId = null, string? salonName = null)
         {
             try
             {
@@ -26,14 +26,30 @@ public static class AdminOfferEndpoints
                 {
                     query = query.Where(o => o.SpecialistId == specialistId.Value);
                 }
-                if (salonId.HasValue)
+                if (salonId.HasValue || !string.IsNullOrWhiteSpace(salonName))
                 {
+                    string? targetSalonName = salonName?.Trim();
+                    if (salonId.HasValue && string.IsNullOrEmpty(targetSalonName))
+                    {
+                        var targetSalon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == salonId.Value, ct);
+                        targetSalonName = targetSalon?.Name;
+                        if (string.IsNullOrEmpty(targetSalonName))
+                        {
+                            var targetOrg = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == salonId.Value, ct);
+                            targetSalonName = targetOrg?.Name;
+                        }
+                    }
+
                     var salonSpecIds = await dbContext.Specialists
-                        .Where(s => s.SalonId == salonId.Value)
+                        .Where(s => (salonId.HasValue && s.SalonId == salonId.Value) || (!string.IsNullOrEmpty(targetSalonName) && s.SalonName == targetSalonName))
                         .Select(s => s.Id)
                         .ToListAsync(ct);
 
-                    query = query.Where(o => o.SalonId == salonId.Value || (o.SpecialistId != null && salonSpecIds.Contains(o.SpecialistId.Value)));
+                    query = query.Where(o =>
+                        (salonId.HasValue && o.SalonId == salonId.Value) ||
+                        (!string.IsNullOrEmpty(targetSalonName) && o.SalonName == targetSalonName) ||
+                        (o.SpecialistId != null && salonSpecIds.Contains(o.SpecialistId.Value))
+                    );
                 }
 
                 var offers = await query
@@ -246,7 +262,7 @@ public static class AdminOfferEndpoints
         }
 
         // Register routes under /api/offers (Public endpoint defaults to activeOnly = true)
-        apiGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? specialistId, [FromQuery] Guid? salonId) => await GetOffersHandler(dbContext, ct, activeOnly: activeOnly ?? true, specialistId: specialistId, salonId: salonId));
+        apiGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? specialistId, [FromQuery] Guid? salonId, [FromQuery] string? salonName) => await GetOffersHandler(dbContext, ct, activeOnly: activeOnly ?? true, specialistId: specialistId, salonId: salonId, salonName: salonName));
         apiGroup.MapPost("/offers", async ([FromBody] CreateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await CreateOfferHandler(dto, dbContext, ct));
         apiGroup.MapPost("/offers/reorder", async ([FromBody] ReorderOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await ReorderOffersHandler(dto, dbContext, ct));
         apiGroup.MapPut("/offers/{id:guid}", async (Guid id, [FromBody] UpdateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await UpdateOfferHandler(id, dto, dbContext, ct));
@@ -255,7 +271,7 @@ public static class AdminOfferEndpoints
 
         // Register routes under /api/admin/offers
         var adminGroup = apiGroup.MapGroup("/admin");
-        adminGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] Guid? specialistId, [FromQuery] Guid? salonId) => await GetOffersHandler(dbContext, ct, activeOnly: false, specialistId: specialistId, salonId: salonId));
+        adminGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] Guid? specialistId, [FromQuery] Guid? salonId, [FromQuery] string? salonName) => await GetOffersHandler(dbContext, ct, activeOnly: false, specialistId: specialistId, salonId: salonId, salonName: salonName));
         adminGroup.MapPost("/offers", async ([FromBody] CreateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await CreateOfferHandler(dto, dbContext, ct));
         adminGroup.MapPost("/offers/reorder", async ([FromBody] ReorderOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await ReorderOffersHandler(dto, dbContext, ct));
         adminGroup.MapPut("/offers/{id:guid}", async (Guid id, [FromBody] UpdateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await UpdateOfferHandler(id, dto, dbContext, ct));
