@@ -13,7 +13,7 @@ public static class AdminOfferEndpoints
         var apiGroup = app.MapGroup("/api");
 
         // Function to get active or all offers
-        async Task<IResult> GetOffersHandler(AppDbContext dbContext, CancellationToken ct, bool activeOnly = false, Guid? specialistId = null)
+        async Task<IResult> GetOffersHandler(AppDbContext dbContext, CancellationToken ct, bool activeOnly = false, Guid? specialistId = null, Guid? salonId = null)
         {
             try
             {
@@ -25,6 +25,15 @@ public static class AdminOfferEndpoints
                 if (specialistId.HasValue)
                 {
                     query = query.Where(o => o.SpecialistId == specialistId.Value);
+                }
+                if (salonId.HasValue)
+                {
+                    var salonSpecIds = await dbContext.Specialists
+                        .Where(s => s.SalonId == salonId.Value)
+                        .Select(s => s.Id)
+                        .ToListAsync(ct);
+
+                    query = query.Where(o => o.SalonId == salonId.Value || (o.SpecialistId != null && salonSpecIds.Contains(o.SpecialistId.Value)));
                 }
 
                 var offers = await query
@@ -47,6 +56,43 @@ public static class AdminOfferEndpoints
                 return Results.BadRequest(new { message = "Title is required." });
             }
 
+            Guid? finalSalonId = dto.SalonId;
+            string? finalSalonName = dto.SalonName;
+            Guid? finalSpecialistId = dto.SpecialistId;
+            string? finalSpecialistName = dto.SpecialistName;
+
+            if (finalSpecialistId.HasValue)
+            {
+                var spec = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == finalSpecialistId.Value, ct);
+                if (spec != null)
+                {
+                    finalSpecialistName ??= spec.Name;
+                    if (finalSalonId.HasValue && spec.SalonId.HasValue && spec.SalonId != finalSalonId.Value)
+                    {
+                        return Results.BadRequest(new { message = "Selected specialist does not belong to the specified salon." });
+                    }
+                    if (!finalSalonId.HasValue && spec.SalonId.HasValue)
+                    {
+                        finalSalonId = spec.SalonId;
+                        finalSalonName ??= spec.SalonName;
+                    }
+                }
+            }
+
+            if (finalSalonId.HasValue && string.IsNullOrWhiteSpace(finalSalonName))
+            {
+                var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == finalSalonId.Value, ct);
+                if (salon != null)
+                {
+                    finalSalonName = salon.Name;
+                }
+                else
+                {
+                    var org = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == finalSalonId.Value, ct);
+                    if (org != null) finalSalonName = org.Name;
+                }
+            }
+
             var offer = new Offer(
                 title: dto.Title,
                 titleHy: dto.TitleHy,
@@ -61,10 +107,10 @@ public static class AdminOfferEndpoints
                 badgeTextEn: dto.BadgeTextEn,
                 badgeTextRu: dto.BadgeTextRu,
                 discountPercent: dto.DiscountPercent,
-                salonId: dto.SalonId,
-                salonName: dto.SalonName,
-                specialistId: dto.SpecialistId,
-                specialistName: dto.SpecialistName,
+                salonId: finalSalonId,
+                salonName: finalSalonName,
+                specialistId: finalSpecialistId,
+                specialistName: finalSpecialistName,
                 imageUrl: dto.ImageUrl,
                 validUntil: dto.ValidUntil,
                 orderIndex: dto.OrderIndex,
@@ -89,6 +135,43 @@ public static class AdminOfferEndpoints
             var offer = await dbContext.Offers.FirstOrDefaultAsync(o => o.Id == id, ct);
             if (offer == null) return Results.NotFound(new { message = "Offer not found." });
 
+            Guid? finalSalonId = dto.SalonId;
+            string? finalSalonName = dto.SalonName;
+            Guid? finalSpecialistId = dto.SpecialistId;
+            string? finalSpecialistName = dto.SpecialistName;
+
+            if (finalSpecialistId.HasValue)
+            {
+                var spec = await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == finalSpecialistId.Value, ct);
+                if (spec != null)
+                {
+                    finalSpecialistName ??= spec.Name;
+                    if (finalSalonId.HasValue && spec.SalonId.HasValue && spec.SalonId != finalSalonId.Value)
+                    {
+                        return Results.BadRequest(new { message = "Selected specialist does not belong to the specified salon." });
+                    }
+                    if (!finalSalonId.HasValue && spec.SalonId.HasValue)
+                    {
+                        finalSalonId = spec.SalonId;
+                        finalSalonName ??= spec.SalonName;
+                    }
+                }
+            }
+
+            if (finalSalonId.HasValue && string.IsNullOrWhiteSpace(finalSalonName))
+            {
+                var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == finalSalonId.Value, ct);
+                if (salon != null)
+                {
+                    finalSalonName = salon.Name;
+                }
+                else
+                {
+                    var org = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == finalSalonId.Value, ct);
+                    if (org != null) finalSalonName = org.Name;
+                }
+            }
+
             offer.Update(
                 title: dto.Title,
                 titleHy: dto.TitleHy,
@@ -103,10 +186,10 @@ public static class AdminOfferEndpoints
                 badgeTextEn: dto.BadgeTextEn,
                 badgeTextRu: dto.BadgeTextRu,
                 discountPercent: dto.DiscountPercent,
-                salonId: dto.SalonId,
-                salonName: dto.SalonName,
-                specialistId: dto.SpecialistId,
-                specialistName: dto.SpecialistName,
+                salonId: finalSalonId,
+                salonName: finalSalonName,
+                specialistId: finalSpecialistId,
+                specialistName: finalSpecialistName,
                 imageUrl: dto.ImageUrl,
                 validUntil: dto.ValidUntil,
                 orderIndex: dto.OrderIndex,
@@ -163,7 +246,7 @@ public static class AdminOfferEndpoints
         }
 
         // Register routes under /api/offers (Public endpoint defaults to activeOnly = true)
-        apiGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? specialistId) => await GetOffersHandler(dbContext, ct, activeOnly: activeOnly ?? true, specialistId: specialistId));
+        apiGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? specialistId, [FromQuery] Guid? salonId) => await GetOffersHandler(dbContext, ct, activeOnly: activeOnly ?? true, specialistId: specialistId, salonId: salonId));
         apiGroup.MapPost("/offers", async ([FromBody] CreateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await CreateOfferHandler(dto, dbContext, ct));
         apiGroup.MapPost("/offers/reorder", async ([FromBody] ReorderOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await ReorderOffersHandler(dto, dbContext, ct));
         apiGroup.MapPut("/offers/{id:guid}", async (Guid id, [FromBody] UpdateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await UpdateOfferHandler(id, dto, dbContext, ct));
@@ -172,7 +255,7 @@ public static class AdminOfferEndpoints
 
         // Register routes under /api/admin/offers
         var adminGroup = apiGroup.MapGroup("/admin");
-        adminGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] Guid? specialistId) => await GetOffersHandler(dbContext, ct, activeOnly: false, specialistId: specialistId));
+        adminGroup.MapGet("/offers", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] Guid? specialistId, [FromQuery] Guid? salonId) => await GetOffersHandler(dbContext, ct, activeOnly: false, specialistId: specialistId, salonId: salonId));
         adminGroup.MapPost("/offers", async ([FromBody] CreateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await CreateOfferHandler(dto, dbContext, ct));
         adminGroup.MapPost("/offers/reorder", async ([FromBody] ReorderOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await ReorderOffersHandler(dto, dbContext, ct));
         adminGroup.MapPut("/offers/{id:guid}", async (Guid id, [FromBody] UpdateOfferDto dto, AppDbContext dbContext, CancellationToken ct) => await UpdateOfferHandler(id, dto, dbContext, ct));

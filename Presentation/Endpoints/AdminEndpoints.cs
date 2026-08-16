@@ -520,7 +520,7 @@ public static class AdminEndpoints
         .WithSummary("Delete a branch");
 
         // ------------------ SPECIALISTS MANAGEMENT ------------------
-        adminGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool activeOnly = false) =>
+        async Task<IResult> GetSpecialistsHandler(AppDbContext dbContext, CancellationToken ct, bool activeOnly = false, Guid? salonId = null)
         {
             try
             {
@@ -530,6 +530,11 @@ public static class AdminEndpoints
                 if (activeOnly)
                 {
                     query = query.Where(sp => sp.IsActivated && !sp.IsBlocked);
+                }
+
+                if (salonId.HasValue)
+                {
+                    query = query.Where(sp => sp.SalonId == salonId.Value);
                 }
 
                 var specialists = await query
@@ -632,13 +637,12 @@ public static class AdminEndpoints
                         .ToListAsync(ct);
                     return Results.Ok(retrySpecialists);
                 }
-                catch
-                {
-                    return Results.Ok(new List<object>());
                 }
             }
-        })
-        .WithSummary("Get specialists (Admin: all, Client: activeOnly=true for activated + unblocked only)");
+        }
+
+        apiGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? true, salonId: salonId));
+        adminGroup.MapGet("/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? false, salonId: salonId));
 
         adminGroup.MapPost("/specialists", async ([FromBody] CreateSpecialistDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
