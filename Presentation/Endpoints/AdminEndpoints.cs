@@ -607,6 +607,7 @@ public static class AdminEndpoints
                     ", ct);
                     var retryQuery = dbContext.Specialists.AsQueryable();
                     if (activeOnly) retryQuery = retryQuery.Where(sp => sp.IsActivated && !sp.IsBlocked);
+                    if (salonId.HasValue) retryQuery = retryQuery.Where(sp => sp.SalonId == salonId.Value);
                     var retrySpecialists = await retryQuery
                         .OrderByDescending(sp => sp.CreatedAt)
                         .Select(sp => new
@@ -637,6 +638,9 @@ public static class AdminEndpoints
                         .ToListAsync(ct);
                     return Results.Ok(retrySpecialists);
                 }
+                catch
+                {
+                    return Results.Ok(new List<object>());
                 }
             }
         }
