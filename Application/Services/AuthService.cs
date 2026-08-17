@@ -142,6 +142,8 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Սխալ հեռախոսահամար կամ գաղտնաբառ։");
         }
 
+        var token = _tokenGenerator.GenerateToken(user);
+
         Guid? userSalonId = null;
         if (user.Role.Equals("salon", StringComparison.OrdinalIgnoreCase) || user.Role.Equals("specialist", StringComparison.OrdinalIgnoreCase))
         {
