@@ -39,7 +39,8 @@ public record AuthResponseDto(
     string Email,
     string FullName,
     string Role,
-    bool IsOnboardingCompleted
+    bool IsOnboardingCompleted,
+    Guid? SalonId = null
 );
 
 public record UserChangePasswordRequestDto(

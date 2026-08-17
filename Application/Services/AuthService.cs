@@ -142,7 +142,19 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Սխալ հեռախոսահամար կամ գաղտնաբառ։");
         }
 
-        var token = _tokenGenerator.GenerateToken(user);
+        Guid? userSalonId = null;
+        if (user.Role.Equals("salon", StringComparison.OrdinalIgnoreCase) || user.Role.Equals("specialist", StringComparison.OrdinalIgnoreCase))
+        {
+            var cleanPhone = System.Text.RegularExpressions.Regex.Replace(user.Phone ?? "", @"\D", "");
+            var salons = await _dbContext.Salons.ToListAsync(ct);
+            var matchedSalon = salons.FirstOrDefault(s => {
+                var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
+                var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
+                return (cleanPhone.Length >= 4 && (pDigits.EndsWith(cleanPhone) || cleanPhone.EndsWith(pDigits) || oDigits.EndsWith(cleanPhone) || cleanPhone.EndsWith(oDigits)))
+                       || (!string.IsNullOrWhiteSpace(s.Name) && s.Name.Equals(user.FullName, StringComparison.OrdinalIgnoreCase));
+            });
+            if (matchedSalon != null) userSalonId = matchedSalon.Id;
+        }
 
         return new AuthResponseDto(
             Token: token,
@@ -151,7 +163,8 @@ public class AuthService : IAuthService
             Email: user.Email,
             FullName: user.FullName,
             Role: user.Role,
-            IsOnboardingCompleted: user.IsOnboardingCompleted
+            IsOnboardingCompleted: user.IsOnboardingCompleted,
+            SalonId: userSalonId
         );
     }
 
@@ -410,7 +423,8 @@ public class AuthService : IAuthService
             Email: user.Email,
             FullName: user.FullName,
             Role: user.Role,
-            IsOnboardingCompleted: user.IsOnboardingCompleted
+            IsOnboardingCompleted: user.IsOnboardingCompleted,
+            SalonId: salon.Id
         );
     }
 

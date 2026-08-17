@@ -20,13 +20,35 @@ namespace movaa_project_back.Presentation.Endpoints
             var group = app.MapGroup("/api/salon-resources")
                            .WithTags("Salon Resources");
 
+            static async Task<Guid> ResolveSalonIdInternalAsync(Guid inputId, AppDbContext dbContext, CancellationToken ct)
+            {
+                var existsAsSalon = await dbContext.Salons.AnyAsync(s => s.Id == inputId, ct);
+                if (existsAsSalon) return inputId;
+
+                var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == inputId, ct);
+                if (user != null)
+                {
+                    var cleanUserPhone = System.Text.RegularExpressions.Regex.Replace(user.Phone ?? "", @"\D", "");
+                    var salons = await dbContext.Salons.ToListAsync(ct);
+                    var matched = salons.FirstOrDefault(s => {
+                        var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
+                        var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
+                        return (cleanUserPhone.Length >= 4 && (pDigits.EndsWith(cleanUserPhone) || cleanUserPhone.EndsWith(pDigits) || oDigits.EndsWith(cleanUserPhone) || cleanUserPhone.EndsWith(oDigits)))
+                               || (!string.IsNullOrWhiteSpace(s.Name) && s.Name.Equals(user.FullName, StringComparison.OrdinalIgnoreCase));
+                    });
+                    if (matched != null) return matched.Id;
+                }
+                return inputId;
+            }
+
             // GET /api/salon-resources?salonId={salonId}
             group.MapGet("", async ([FromQuery] Guid? salonId, AppDbContext dbContext, CancellationToken ct) =>
             {
                 var query = dbContext.SalonResources.AsQueryable();
                 if (salonId.HasValue && salonId.Value != Guid.Empty)
                 {
-                    query = query.Where(r => r.SalonId == salonId.Value);
+                    var resolvedSalonId = await ResolveSalonIdInternalAsync(salonId.Value, dbContext, ct);
+                    query = query.Where(r => r.SalonId == resolvedSalonId);
                 }
 
                 var resources = await query.OrderBy(r => r.Name).ToListAsync(ct);
@@ -42,8 +64,10 @@ namespace movaa_project_back.Presentation.Endpoints
                     return Results.BadRequest(new { message = "SalonId and Name are required." });
                 }
 
+                var resolvedSalonId = await ResolveSalonIdInternalAsync(dto.SalonId, dbContext, ct);
+
                 var resource = new SalonResource(
-                    dto.SalonId,
+                    resolvedSalonId,
                     dto.Name,
                     dto.Quantity,
                     dto.Description,
