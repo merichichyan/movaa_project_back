@@ -547,11 +547,25 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<movaa_project_back.Data.AppDbContext>();
-        dbContext.Database.ExecuteSqlRaw(@"
-            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""IsMain"" boolean NOT NULL DEFAULT false;
-            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Instagram"" text NULL;
-            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Facebook"" text NULL;
-        ");
+        try
+        {
+            dbContext.Database.ExecuteSqlRaw(@"
+                ALTER TABLE IF EXISTS ""Branches"" ADD COLUMN IF NOT EXISTS ""IsMain"" boolean NOT NULL DEFAULT false;
+                ALTER TABLE IF EXISTS ""Branches"" ADD COLUMN IF NOT EXISTS ""Instagram"" text NULL;
+                ALTER TABLE IF EXISTS ""Branches"" ADD COLUMN IF NOT EXISTS ""Facebook"" text NULL;
+            ");
+        }
+        catch { }
+
+        try
+        {
+            dbContext.Database.ExecuteSqlRaw(@"
+                ALTER TABLE IF EXISTS ""branches"" ADD COLUMN IF NOT EXISTS ""IsMain"" boolean NOT NULL DEFAULT false;
+                ALTER TABLE IF EXISTS ""branches"" ADD COLUMN IF NOT EXISTS ""Instagram"" text NULL;
+                ALTER TABLE IF EXISTS ""branches"" ADD COLUMN IF NOT EXISTS ""Facebook"" text NULL;
+            ");
+        }
+        catch { }
     }
     catch (Exception ex)
     {
