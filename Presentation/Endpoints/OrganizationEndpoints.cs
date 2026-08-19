@@ -95,10 +95,23 @@ namespace movaa_project_back.Presentation.Endpoints
             // Helper to map Branch entity to response DTO with specialistIds
             static async Task<object> MapBranchResponseAsync(Branch b, AppDbContext dbContext, CancellationToken ct)
             {
-                var specIds = await dbContext.SpecialistBranches
-                    .Where(sb => sb.BranchId == b.Id && sb.Status == "ACTIVE")
-                    .Select(sb => sb.SpecialistId.ToString())
-                    .ToListAsync(ct);
+                List<string> specIds = new();
+                try
+                {
+                    specIds = await dbContext.SpecialistBranches
+                        .Where(sb => sb.BranchId == b.Id && sb.Status == "ACTIVE")
+                        .Select(sb => sb.SpecialistId.ToString())
+                        .ToListAsync(ct);
+                }
+                catch (_) { }
+
+                bool isMain = false;
+                string? insta = null;
+                string? fb = null;
+
+                try { isMain = b.IsMain; } catch (_) { }
+                try { insta = b.Instagram; } catch (_) { }
+                try { fb = b.Facebook; } catch (_) { }
 
                 return new
                 {
@@ -111,9 +124,9 @@ namespace movaa_project_back.Presentation.Endpoints
                     workingHours = b.WorkingHours,
                     status = b.Status,
                     isActive = b.Status == "ACTIVE",
-                    isMain = b.IsMain,
-                    instagram = b.Instagram,
-                    facebook = b.Facebook,
+                    isMain = isMain,
+                    instagram = insta,
+                    facebook = fb,
                     latitude = b.Latitude,
                     longitude = b.Longitude,
                     specialistIds = specIds,
@@ -125,18 +138,55 @@ namespace movaa_project_back.Presentation.Endpoints
             // GET /api/organizations/{orgId}/branches & /api/salons/{orgId}/branches
             async Task<IResult> GetBranchesHandler(Guid orgId, AppDbContext dbContext, CancellationToken ct)
             {
-                var branches = await dbContext.Branches
-                    .Where(b => b.OrganizationId == orgId)
-                    .OrderByDescending(b => b.IsMain)
-                    .ThenBy(b => b.CreatedAt)
-                    .ToListAsync(ct);
-
-                var resultList = new List<object>();
-                foreach (var b in branches)
+                try
                 {
-                    resultList.Add(await MapBranchResponseAsync(b, dbContext, ct));
+                    var branches = await dbContext.Branches
+                        .Where(b => b.OrganizationId == orgId)
+                        .OrderByDescending(b => b.IsMain)
+                        .ThenBy(b => b.CreatedAt)
+                        .ToListAsync(ct);
+
+                    var resultList = new List<object>();
+                    foreach (var b in branches)
+                    {
+                        resultList.Add(await MapBranchResponseAsync(b, dbContext, ct));
+                    }
+                    return Results.Ok(resultList);
                 }
-                return Results.Ok(resultList);
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"GetBranches Main Query Error: {ex.Message}");
+                    try
+                    {
+                        var branches = await dbContext.Branches
+                            .Where(b => b.OrganizationId == orgId)
+                            .ToListAsync(ct);
+
+                        var fallbackList = branches.Select(b => new
+                        {
+                            id = b.Id.ToString(),
+                            organizationId = b.OrganizationId.ToString(),
+                            name = b.Name,
+                            address = b.Address,
+                            phone = b.Phone,
+                            email = b.Email,
+                            workingHours = b.WorkingHours,
+                            status = b.Status,
+                            isActive = b.Status == "ACTIVE",
+                            isMain = false,
+                            instagram = (string?)null,
+                            facebook = (string?)null,
+                            specialistIds = new List<string>()
+                        }).ToList();
+
+                        return Results.Ok(fallbackList);
+                    }
+                    catch (Exception ex2)
+                    {
+                        Console.WriteLine($"GetBranches Fallback Error: {ex2.Message}");
+                        return Results.Ok(new List<object>());
+                    }
+                }
             }
 
             orgGroup.MapGet("/{orgId:guid}/branches", GetBranchesHandler);

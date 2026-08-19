@@ -541,6 +541,24 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Auto DB Schema Migration for Branches
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<movaa_project_back.Data.AppDbContext>();
+        dbContext.Database.ExecuteSqlRaw(@"
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""IsMain"" boolean NOT NULL DEFAULT false;
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Instagram"" text NULL;
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Facebook"" text NULL;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Database Auto-Migration Notice: {ex.Message}");
+    }
+}
+
 // Map API Routes
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();
