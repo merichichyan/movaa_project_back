@@ -30,7 +30,11 @@ namespace movaa_project_back.Application.DTOs.Organization
         string? WorkingHours,
         double? Latitude,
         double? Longitude,
-        List<string>? Categories
+        List<string>? Categories,
+        bool? IsMain,
+        string? Instagram,
+        string? Facebook,
+        List<string>? SpecialistIds
     );
 
     public record UpdateBranchDto(
@@ -42,7 +46,11 @@ namespace movaa_project_back.Application.DTOs.Organization
         string? Status,
         double? Latitude,
         double? Longitude,
-        List<string>? Categories
+        List<string>? Categories,
+        bool? IsMain,
+        string? Instagram,
+        string? Facebook,
+        List<string>? SpecialistIds
     );
 
     public record InviteSpecialistDto(

@@ -15,6 +15,9 @@ namespace movaa_project_back.Domain.Entities
         public string? Email { get; private set; }
         public string WorkingHours { get; private set; } = "09:00 - 18:00";
         public string CategoriesJson { get; private set; } = "[]";
+        public bool IsMain { get; private set; }
+        public string? Instagram { get; private set; }
+        public string? Facebook { get; private set; }
         public string Status { get; private set; } = "ACTIVE"; // ACTIVE, TEMPORARILY_CLOSED, INACTIVE
         public DateTime CreatedAt { get; private set; }
         public DateTime? UpdatedAt { get; private set; }
@@ -32,7 +35,10 @@ namespace movaa_project_back.Domain.Entities
             string? email = null,
             string workingHours = "09:00 - 18:00",
             string status = "ACTIVE",
-            string? categoriesJson = null)
+            string? categoriesJson = null,
+            bool isMain = false,
+            string? instagram = null,
+            string? facebook = null)
         {
             Id = Guid.NewGuid();
             OrganizationId = organizationId;
@@ -46,6 +52,9 @@ namespace movaa_project_back.Domain.Entities
             WorkingHours = !string.IsNullOrWhiteSpace(workingHours) ? workingHours.Trim() : "09:00 - 18:00";
             Status = !string.IsNullOrWhiteSpace(status) ? status.Trim().ToUpperInvariant() : "ACTIVE";
             CategoriesJson = !string.IsNullOrWhiteSpace(categoriesJson) ? categoriesJson.Trim() : "[]";
+            IsMain = isMain;
+            Instagram = instagram?.Trim();
+            Facebook = facebook?.Trim();
             CreatedAt = DateTime.UtcNow;
         }
 
@@ -58,7 +67,10 @@ namespace movaa_project_back.Domain.Entities
             string? email = null,
             string? workingHours = null,
             string? status = null,
-            string? categoriesJson = null)
+            string? categoriesJson = null,
+            bool? isMain = null,
+            string? instagram = null,
+            string? facebook = null)
         {
             if (!string.IsNullOrWhiteSpace(name)) Name = name.Trim();
             if (!string.IsNullOrWhiteSpace(address)) Address = address.Trim();
@@ -69,6 +81,9 @@ namespace movaa_project_back.Domain.Entities
             if (!string.IsNullOrWhiteSpace(workingHours)) WorkingHours = workingHours.Trim();
             if (!string.IsNullOrWhiteSpace(status)) Status = status.Trim().ToUpperInvariant();
             if (categoriesJson != null) CategoriesJson = categoriesJson.Trim();
+            if (isMain.HasValue) IsMain = isMain.Value;
+            if (instagram != null) Instagram = instagram.Trim();
+            if (facebook != null) Facebook = facebook.Trim();
             UpdatedAt = DateTime.UtcNow;
         }
 
@@ -79,6 +94,12 @@ namespace movaa_project_back.Domain.Entities
                 Status = status.Trim().ToUpperInvariant();
                 UpdatedAt = DateTime.UtcNow;
             }
+        }
+        
+        public void SetIsMain(bool isMain)
+        {
+            IsMain = isMain;
+            UpdatedAt = DateTime.UtcNow;
         }
     }
 }
