@@ -103,15 +103,15 @@ namespace movaa_project_back.Presentation.Endpoints
                         .Select(sb => sb.SpecialistId.ToString())
                         .ToListAsync(ct);
                 }
-                catch (_) { }
+                catch { }
 
                 bool isMain = false;
                 string? insta = null;
                 string? fb = null;
 
-                try { isMain = b.IsMain; } catch (_) { }
-                try { insta = b.Instagram; } catch (_) { }
-                try { fb = b.Facebook; } catch (_) { }
+                try { isMain = b.IsMain; } catch { }
+                try { insta = b.Instagram; } catch { }
+                try { fb = b.Facebook; } catch { }
 
                 return new
                 {
