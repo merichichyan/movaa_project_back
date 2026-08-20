@@ -16,8 +16,8 @@ namespace movaa_project_back.Domain.Entities
         public Guid UserId { get; private set; }
         public string UserEmail { get; private set; } = string.Empty;
 
-        public string? UserName { get; private set; }
-        public string? UserPhone { get; private set; }
+        public string? UserName { get; set; }
+        public string? UserPhone { get; set; }
 
         public DateTime CreatedAt { get; private set; }
         public bool IsNoShow { get; private set; } = false;

@@ -373,7 +373,11 @@ namespace movaa_project_back.Presentation.Endpoints
         string? ServiceId = null,
         string? SpecialistName = null,
         Guid? SalonId = null,
-        string? SalonName = null
+        string? SalonName = null,
+        string? UserName = null,
+        string? UserPhone = null,
+        string? ClientName = null,
+        string? ClientPhone = null
     );
 
     public record UpdateBookingRequest(
