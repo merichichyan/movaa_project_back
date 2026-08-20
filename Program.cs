@@ -183,7 +183,8 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ServicesJson"" text DEFAULT '[]';
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkplacesJson"" text DEFAULT '[]';
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
-                ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsActivated"" boolean DEFAULT false;
+                ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsActivated"" boolean DEFAULT true;
+                UPDATE ""Specialists"" SET ""IsActivated"" = true WHERE ""IsActivated"" IS FALSE OR ""IsActivated"" IS NULL;
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone DEFAULT NOW();
 
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""Phone"" text;

@@ -451,7 +451,7 @@ public static class AdminEndpoints
                 // When activeOnly=true (client view), only return specialists who have activated their account and are not blocked
                 if (activeOnly)
                 {
-                    query = query.Where(sp => sp.IsActivated && !sp.IsBlocked);
+                    query = query.Where(sp => !sp.IsBlocked);
                 }
 
                 if (salonId.HasValue)
@@ -528,7 +528,7 @@ public static class AdminEndpoints
                         ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsActivated"" boolean DEFAULT false;
                     ", ct);
                     var retryQuery = dbContext.Specialists.AsQueryable();
-                    if (activeOnly) retryQuery = retryQuery.Where(sp => sp.IsActivated && !sp.IsBlocked);
+                    if (activeOnly) retryQuery = retryQuery.Where(sp => !sp.IsBlocked);
                     if (salonId.HasValue) retryQuery = retryQuery.Where(sp => sp.SalonId == salonId.Value);
                     var retrySpecialists = await retryQuery
                         .OrderByDescending(sp => sp.CreatedAt)

@@ -95,7 +95,7 @@ namespace movaa_project_back.Data
                 entity.Property(sp => sp.Name).IsRequired().HasMaxLength(150);
                 entity.Property(sp => sp.Category).IsRequired().HasMaxLength(100);
                 entity.Property(sp => sp.Phone).IsRequired().HasMaxLength(50);
-                entity.Property(sp => sp.IsActivated).IsRequired().HasDefaultValue(false);
+                entity.Property(sp => sp.IsActivated).IsRequired().HasDefaultValue(true);
             });
 
             modelBuilder.Entity<UserFavorite>(entity =>

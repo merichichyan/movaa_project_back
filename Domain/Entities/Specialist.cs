@@ -34,7 +34,7 @@ public class Specialist
     public string ServicesJson { get; private set; } = "[]";
     public string WorkplacesJson { get; private set; } = "[]";
     public bool IsBlocked { get; private set; } = false;
-    public bool IsActivated { get; private set; } = false;
+    public bool IsActivated { get; private set; } = true;
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
@@ -101,6 +101,7 @@ public class Specialist
         Rating = rating;
         ReviewCount = reviewCount;
         IsBlocked = false;
+        IsActivated = true;
         CreatedAt = DateTime.UtcNow;
     }
 
