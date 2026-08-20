@@ -191,8 +191,9 @@ namespace movaa_project_back.Presentation.Endpoints
 
             orgGroup.MapGet("/{orgId:guid}/branches", GetBranchesHandler);
             app.MapGet("/api/salons/{orgId:guid}/branches", GetBranchesHandler);
+            app.MapGet("/api/admin/salons/{orgId:guid}/branches", GetBranchesHandler);
 
-            // POST /api/organizations/{orgId}/branches & /api/salons/{orgId}/branches
+            // POST /api/organizations/{orgId}/branches & /api/salons/{orgId}/branches & /api/admin/salons/{orgId}/branches
             async Task<IResult> CreateBranchHandler(Guid orgId, [FromBody] CreateBranchDto dto, AppDbContext dbContext, CancellationToken ct)
             {
                 try
@@ -252,6 +253,7 @@ namespace movaa_project_back.Presentation.Endpoints
 
             orgGroup.MapPost("/{orgId:guid}/branches", CreateBranchHandler);
             app.MapPost("/api/salons/{orgId:guid}/branches", CreateBranchHandler);
+            app.MapPost("/api/admin/salons/{orgId:guid}/branches", CreateBranchHandler);
 
             // PUT /api/organizations/{orgId}/branches/{branchId} & /api/salons/{orgId}/branches/{branchId}
             async Task<IResult> UpdateBranchHandler(Guid orgId, Guid branchId, [FromBody] UpdateBranchDto dto, AppDbContext dbContext, CancellationToken ct)
@@ -330,6 +332,12 @@ namespace movaa_project_back.Presentation.Endpoints
                 if (branch == null) return Results.NotFound(new { message = "Branch not found." });
                 return await UpdateBranchHandler(branch.OrganizationId, branchId, dto, dbContext, ct);
             });
+            app.MapPut("/api/admin/branches/{branchId:guid}", async (Guid branchId, [FromBody] UpdateBranchDto dto, AppDbContext dbContext, CancellationToken ct) =>
+            {
+                var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId, ct);
+                if (branch == null) return Results.NotFound(new { message = "Branch not found." });
+                return await UpdateBranchHandler(branch.OrganizationId, branchId, dto, dbContext, ct);
+            });
 
             // DELETE /api/organizations/{orgId}/branches/{branchId} & /api/salons/{orgId}/branches/{branchId} & /api/branches/{branchId}
             async Task<IResult> DeleteBranchHandler(Guid orgId, Guid branchId, AppDbContext dbContext, CancellationToken ct)
@@ -366,6 +374,12 @@ namespace movaa_project_back.Presentation.Endpoints
             orgGroup.MapDelete("/{orgId:guid}/branches/{branchId:guid}", DeleteBranchHandler);
             app.MapDelete("/api/salons/{orgId:guid}/branches/{branchId:guid}", DeleteBranchHandler);
             app.MapDelete("/api/branches/{branchId:guid}", async (Guid branchId, AppDbContext dbContext, CancellationToken ct) =>
+            {
+                var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId, ct);
+                if (branch == null) return Results.NotFound(new { message = "Branch not found." });
+                return await DeleteBranchHandler(branch.OrganizationId, branchId, dbContext, ct);
+            });
+            app.MapDelete("/api/admin/branches/{branchId:guid}", async (Guid branchId, AppDbContext dbContext, CancellationToken ct) =>
             {
                 var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId, ct);
                 if (branch == null) return Results.NotFound(new { message = "Branch not found." });
