@@ -163,7 +163,33 @@ namespace movaa_project_back.Presentation.Endpoints
                     }
 
                     var specialist = await context.Specialists.FirstOrDefaultAsync(s => s.Id == request.SpecialistId, ct);
+                    if (specialist != null)
+                    {
+                        var hasServices = !string.IsNullOrWhiteSpace(specialist.ServicesJson) && specialist.ServicesJson != "[]";
+                        if (!hasServices)
+                        {
+                            await transaction.RollbackAsync(ct);
+                            return Results.BadRequest(new { message = "Specialist has no active services." });
+                        }
+                    }
+
                     var specName = specialist?.Name ?? request.SpecialistName ?? "Specialist";
+
+                    string? reqClientName = !string.IsNullOrWhiteSpace(request.UserName) ? request.UserName : request.ClientName;
+                    string? reqClientPhone = !string.IsNullOrWhiteSpace(request.UserPhone) ? request.UserPhone : request.ClientPhone;
+
+                    if (string.IsNullOrWhiteSpace(reqClientName))
+                    {
+                        var bookingUser = await context.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+                        if (bookingUser != null && !string.IsNullOrWhiteSpace(bookingUser.FullName))
+                        {
+                            reqClientName = bookingUser.FullName;
+                            if (string.IsNullOrWhiteSpace(reqClientPhone))
+                            {
+                                reqClientPhone = bookingUser.Phone;
+                            }
+                        }
+                    }
 
                     var booking = new Booking(
                         request.SpecialistId,
@@ -178,7 +204,9 @@ namespace movaa_project_back.Presentation.Endpoints
                         request.SalonId,
                         request.SalonName,
                         serviceId: effectiveServiceId,
-                        status: "Confirmed"
+                        status: "Confirmed",
+                        userName: reqClientName,
+                        userPhone: reqClientPhone
                     );
 
                     context.Bookings.Add(booking);

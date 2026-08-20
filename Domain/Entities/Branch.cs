@@ -7,8 +7,14 @@ namespace movaa_project_back.Domain.Entities
         public Guid Id { get; private set; }
         public Guid OrganizationId { get; private set; }
         public string Name { get; private set; } = string.Empty;
+        public string NameHy { get; private set; } = string.Empty;
+        public string NameEn { get; private set; } = string.Empty;
+        public string NameRu { get; private set; } = string.Empty;
         public string Slug { get; private set; } = string.Empty;
         public string Address { get; private set; } = string.Empty;
+        public string AddressHy { get; private set; } = string.Empty;
+        public string AddressEn { get; private set; } = string.Empty;
+        public string AddressRu { get; private set; } = string.Empty;
         public double? Latitude { get; private set; }
         public double? Longitude { get; private set; }
         public string Phone { get; private set; } = string.Empty;
@@ -38,12 +44,24 @@ namespace movaa_project_back.Domain.Entities
             string? categoriesJson = null,
             bool isMain = false,
             string? instagram = null,
-            string? facebook = null)
+            string? facebook = null,
+            string? nameHy = null,
+            string? nameEn = null,
+            string? nameRu = null,
+            string? addressHy = null,
+            string? addressEn = null,
+            string? addressRu = null)
         {
             Id = Guid.NewGuid();
             OrganizationId = organizationId;
             Name = !string.IsNullOrWhiteSpace(name) ? name.Trim() : throw new ArgumentException("Branch name is required.", nameof(name));
+            NameHy = !string.IsNullOrWhiteSpace(nameHy) ? nameHy.Trim() : Name;
+            NameEn = !string.IsNullOrWhiteSpace(nameEn) ? nameEn.Trim() : Name;
+            NameRu = !string.IsNullOrWhiteSpace(nameRu) ? nameRu.Trim() : Name;
             Address = !string.IsNullOrWhiteSpace(address) ? address.Trim() : throw new ArgumentException("Address is required.", nameof(address));
+            AddressHy = !string.IsNullOrWhiteSpace(addressHy) ? addressHy.Trim() : Address;
+            AddressEn = !string.IsNullOrWhiteSpace(addressEn) ? addressEn.Trim() : Address;
+            AddressRu = !string.IsNullOrWhiteSpace(addressRu) ? addressRu.Trim() : Address;
             Phone = phone.Trim();
             Slug = !string.IsNullOrWhiteSpace(slug) ? slug.Trim().ToLowerInvariant() : Organization.GenerateSlug(Name);
             Latitude = latitude;

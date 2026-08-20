@@ -16,11 +16,8 @@ namespace movaa_project_back.Domain.Entities
         public Guid UserId { get; private set; }
         public string UserEmail { get; private set; } = string.Empty;
 
-        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-        public string? UserName { get; set; }
-
-        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-        public string? UserPhone { get; set; }
+        public string? UserName { get; private set; }
+        public string? UserPhone { get; private set; }
 
         public DateTime CreatedAt { get; private set; }
         public bool IsNoShow { get; private set; } = false;
@@ -43,7 +40,9 @@ namespace movaa_project_back.Domain.Entities
             Guid? salonId = null, 
             string? salonName = null,
             string? serviceId = null,
-            string status = "Confirmed")
+            string status = "Confirmed",
+            string? userName = null,
+            string? userPhone = null)
         {
             Id = Guid.NewGuid();
             SpecialistId = specialistId;
@@ -60,6 +59,8 @@ namespace movaa_project_back.Domain.Entities
             SalonId = salonId;
             SalonName = salonName;
             Status = !string.IsNullOrWhiteSpace(status) ? status : "Confirmed";
+            UserName = userName?.Trim();
+            UserPhone = userPhone?.Trim();
         }
 
         public void MarkAsNoShow(bool isNoShow)
@@ -85,7 +86,9 @@ namespace movaa_project_back.Domain.Entities
             string? timeSlot = null,
             string? status = null,
             Guid? salonId = null,
-            string? salonName = null)
+            string? salonName = null,
+            string? userName = null,
+            string? userPhone = null)
         {
             if (specialistId.HasValue && specialistId.Value != Guid.Empty) SpecialistId = specialistId.Value;
             if (!string.IsNullOrWhiteSpace(specialistName)) SpecialistName = specialistName;
@@ -97,6 +100,8 @@ namespace movaa_project_back.Domain.Entities
             if (!string.IsNullOrWhiteSpace(status)) Status = status.Trim();
             if (salonId.HasValue && salonId.Value != Guid.Empty) SalonId = salonId.Value;
             if (!string.IsNullOrWhiteSpace(salonName)) SalonName = salonName;
+            if (userName != null) UserName = userName.Trim();
+            if (userPhone != null) UserPhone = userPhone.Trim();
         }
     }
 }
