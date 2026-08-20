@@ -185,6 +185,7 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsActivated"" boolean DEFAULT true;
                 UPDATE ""Specialists"" SET ""IsActivated"" = true WHERE ""IsActivated"" IS FALSE OR ""IsActivated"" IS NULL;
+                UPDATE ""Specialists"" SET ""SalonId"" = 'cbdc997b-0753-4b9c-8243-dc85475bf7b5' WHERE (""SalonName"" LIKE '%Արևիկ%' OR ""SalonName"" LIKE '%Arevik%') AND (""SalonId"" IS NULL OR ""SalonId"" != 'cbdc997b-0753-4b9c-8243-dc85475bf7b5');
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone DEFAULT NOW();
 
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""Phone"" text;

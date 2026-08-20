@@ -456,7 +456,29 @@ public static class AdminEndpoints
 
                 if (salonId.HasValue)
                 {
-                    query = query.Where(sp => sp.SalonId == salonId.Value);
+                    var sId = salonId.Value;
+                    var salonObj = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == sId, ct);
+                    var orgObj = salonObj == null ? await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == sId, ct) : null;
+                    var targetName = salonObj?.Name ?? orgObj?.Name;
+
+                    var linkedSpecIds = await dbContext.SpecialistBranches
+                        .Where(sb => sb.OrganizationId == sId || sb.BranchId == sId)
+                        .Select(sb => sb.SpecialistId)
+                        .ToListAsync(ct);
+
+                    if (!string.IsNullOrWhiteSpace(targetName))
+                    {
+                        var cleanTarget = targetName.Trim().ToLower();
+                        query = query.Where(sp => 
+                            sp.SalonId == sId 
+                            || linkedSpecIds.Contains(sp.Id)
+                            || (sp.SalonName != null && (sp.SalonName.ToLower().Contains(cleanTarget) || cleanTarget.Contains(sp.SalonName.ToLower())))
+                        );
+                    }
+                    else
+                    {
+                        query = query.Where(sp => sp.SalonId == sId || linkedSpecIds.Contains(sp.Id));
+                    }
                 }
 
                 var specialists = await query
@@ -529,7 +551,32 @@ public static class AdminEndpoints
                     ", ct);
                     var retryQuery = dbContext.Specialists.AsQueryable();
                     if (activeOnly) retryQuery = retryQuery.Where(sp => !sp.IsBlocked);
-                    if (salonId.HasValue) retryQuery = retryQuery.Where(sp => sp.SalonId == salonId.Value);
+                    if (salonId.HasValue)
+                    {
+                        var sId = salonId.Value;
+                        var salonObj = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == sId, ct);
+                        var orgObj = salonObj == null ? await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == sId, ct) : null;
+                        var targetName = salonObj?.Name ?? orgObj?.Name;
+
+                        var linkedSpecIds = await dbContext.SpecialistBranches
+                            .Where(sb => sb.OrganizationId == sId || sb.BranchId == sId)
+                            .Select(sb => sb.SpecialistId)
+                            .ToListAsync(ct);
+
+                        if (!string.IsNullOrWhiteSpace(targetName))
+                        {
+                            var cleanTarget = targetName.Trim().ToLower();
+                            retryQuery = retryQuery.Where(sp => 
+                                sp.SalonId == sId 
+                                || linkedSpecIds.Contains(sp.Id)
+                                || (sp.SalonName != null && (sp.SalonName.ToLower().Contains(cleanTarget) || cleanTarget.Contains(sp.SalonName.ToLower())))
+                            );
+                        }
+                        else
+                        {
+                            retryQuery = retryQuery.Where(sp => sp.SalonId == sId || linkedSpecIds.Contains(sp.Id));
+                        }
+                    }
                     var retrySpecialists = await retryQuery
                         .OrderByDescending(sp => sp.CreatedAt)
                         .Select(sp => new
