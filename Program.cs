@@ -204,6 +204,23 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""ResourceId"" uuid;
                 ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""RequiredQuantity"" integer DEFAULT 1;
 
+                CREATE TABLE IF NOT EXISTS ""Services"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""SalonId"" uuid,
+                    ""Name"" text NOT NULL,
+                    ""NameHy"" text,
+                    ""NameEn"" text,
+                    ""NameRu"" text,
+                    ""Category"" text NOT NULL DEFAULT 'General',
+                    ""Price"" double precision NOT NULL DEFAULT 0,
+                    ""DurationMinutes"" integer NOT NULL DEFAULT 30,
+                    ""Description"" text,
+                    ""SpecialistIdsJson"" text NOT NULL DEFAULT '[]',
+                    ""IsActive"" boolean NOT NULL DEFAULT true,
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
+
                 CREATE TABLE IF NOT EXISTS ""Offers"" (
                     ""Id"" uuid PRIMARY KEY,
                     ""Title"" text NOT NULL,
@@ -611,6 +628,7 @@ app.MapResourceEndpoints();
 app.MapOrganizationEndpoints();
 app.MapSpecialistSocialLinkEndpoints();
 app.MapSalonSocialLinkEndpoints();
+app.MapServiceEndpoints();
 
 // Root status endpoint
 app.MapGet("/", () => Results.Ok(new

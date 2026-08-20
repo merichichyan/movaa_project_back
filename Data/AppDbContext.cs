@@ -22,6 +22,7 @@ namespace movaa_project_back.Data
         public DbSet<SpecialistPhoneChangeRequest> SpecialistPhoneChangeRequests => Set<SpecialistPhoneChangeRequest>();
         public DbSet<SpecialistSocialLink> SpecialistSocialLinks => Set<SpecialistSocialLink>();
         public DbSet<SalonSocialLink> SalonSocialLinks => Set<SalonSocialLink>();
+        public DbSet<ServiceItem> Services => Set<ServiceItem>();
 
         public DbSet<Organization> Organizations => Set<Organization>();
         public DbSet<Branch> Branches => Set<Branch>();

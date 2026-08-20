@@ -666,6 +666,7 @@ public static class AdminEndpoints
             try
             {
                 dbContext.Specialists.Add(specialist);
+                await ServiceEndpoints.SyncSpecialistToServicesAsync(specialist, dbContext, ct);
                 await dbContext.SaveChangesAsync(ct);
                 return Results.Ok(specialist);
             }
@@ -769,6 +770,7 @@ public static class AdminEndpoints
 
             try
             {
+                await ServiceEndpoints.SyncSpecialistToServicesAsync(specialist, dbContext, ct);
                 await dbContext.SaveChangesAsync(ct);
                 return Results.Ok(specialist);
             }
