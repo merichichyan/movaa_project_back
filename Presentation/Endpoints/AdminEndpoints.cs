@@ -442,7 +442,7 @@ public static class AdminEndpoints
         // Note: Branches management endpoints are registered in OrganizationEndpoints.cs to prevent ambiguous route collisions.
 
         // ------------------ SPECIALISTS MANAGEMENT ------------------
-        async Task<IResult> GetSpecialistsHandler(AppDbContext dbContext, CancellationToken ct, bool activeOnly = false, Guid? salonId = null)
+        async Task<IResult> GetSpecialistsHandler(AppDbContext dbContext, CancellationToken ct, bool activeOnly = false, Guid? salonId = null, string? search = null, bool? isBlocked = null, Guid? branchId = null)
         {
             try
             {
@@ -452,6 +452,21 @@ public static class AdminEndpoints
                 if (activeOnly)
                 {
                     query = query.Where(sp => !sp.IsBlocked);
+                }
+
+                if (isBlocked.HasValue)
+                {
+                    query = query.Where(sp => sp.IsBlocked == isBlocked.Value);
+                }
+
+                if (branchId.HasValue)
+                {
+                    var bId = branchId.Value;
+                    var branchSpecIds = await dbContext.SpecialistBranches
+                        .Where(sb => sb.BranchId == bId)
+                        .Select(sb => sb.SpecialistId)
+                        .ToListAsync(ct);
+                    query = query.Where(sp => branchSpecIds.Contains(sp.Id));
                 }
 
                 if (salonId.HasValue)
@@ -479,6 +494,18 @@ public static class AdminEndpoints
                     {
                         query = query.Where(sp => sp.SalonId == sId || linkedSpecIds.Contains(sp.Id));
                     }
+                }
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var s = search.Trim().ToLower();
+                    query = query.Where(sp =>
+                        (sp.Name != null && sp.Name.ToLower().Contains(s)) ||
+                        (sp.JobTitle != null && sp.JobTitle.ToLower().Contains(s)) ||
+                        (sp.Phone != null && sp.Phone.ToLower().Contains(s)) ||
+                        (sp.Category != null && sp.Category.ToLower().Contains(s)) ||
+                        (sp.Email != null && sp.Email.ToLower().Contains(s))
+                    );
                 }
 
                 var specialists = await query
@@ -614,8 +641,8 @@ public static class AdminEndpoints
             }
         }
 
-        app.MapGet("/api/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? true, salonId: salonId));
-        adminGroup.MapGet("/admin/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? false, salonId: salonId));
+        app.MapGet("/api/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId, [FromQuery] string? search, [FromQuery] bool? isBlocked, [FromQuery] Guid? branchId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? true, salonId: salonId, search: search, isBlocked: isBlocked, branchId: branchId));
+        adminGroup.MapGet("/admin/specialists", async (AppDbContext dbContext, CancellationToken ct, [FromQuery] bool? activeOnly, [FromQuery] Guid? salonId, [FromQuery] string? search, [FromQuery] bool? isBlocked, [FromQuery] Guid? branchId) => await GetSpecialistsHandler(dbContext, ct, activeOnly: activeOnly ?? false, salonId: salonId, search: search, isBlocked: isBlocked, branchId: branchId));
 
         adminGroup.MapPost("/specialists", async ([FromBody] CreateSpecialistDto dto, AppDbContext dbContext, HttpContext httpContext, IWebHostEnvironment env, CancellationToken ct) =>
         {
@@ -812,6 +839,26 @@ public static class AdminEndpoints
             return Results.Ok(new { message = dto.IsBlocked ? "Specialist blocked successfully." : "Specialist unblocked successfully.", isBlocked = specialist.IsBlocked });
         })
         .WithSummary("Block or unblock a specialist");
+
+        async Task<IResult> DeleteSpecialistHandler(Guid id, AppDbContext dbContext, CancellationToken ct)
+        {
+            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(sp => sp.Id == id, ct);
+            if (specialist == null) return Results.NotFound(new { message = "Specialist not found." });
+
+            dbContext.Specialists.Remove(specialist);
+
+            var branchLinks = await dbContext.SpecialistBranches.Where(sb => sb.SpecialistId == id).ToListAsync(ct);
+            if (branchLinks.Any()) dbContext.SpecialistBranches.RemoveRange(branchLinks);
+
+            var socialLinks = await dbContext.SpecialistSocialLinks.Where(sl => sl.SpecialistId == id).ToListAsync(ct);
+            if (socialLinks.Any()) dbContext.SpecialistSocialLinks.RemoveRange(socialLinks);
+
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Specialist deleted successfully." });
+        }
+
+        adminGroup.MapDelete("/specialists/{id:guid}", DeleteSpecialistHandler);
+        app.MapDelete("/api/specialists/{id:guid}", DeleteSpecialistHandler);
 
         // ------------------ SPECIALIST SOCIAL LINKS ------------------
         adminGroup.MapGet("/specialists/{specialistId}/social-links", async (string specialistId, AppDbContext dbContext, CancellationToken ct) =>
