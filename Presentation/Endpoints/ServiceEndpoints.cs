@@ -145,7 +145,7 @@ namespace movaa_project_back.Presentation.Endpoints
             }
 
             // Bi-directional sync helper: Specialist -> Services
-            public static async Task SyncSpecialistToServicesAsync(Specialist specialist, AppDbContext dbContext, CancellationToken ct)
+            static async Task SyncSpecialistToServicesAsync(Specialist specialist, AppDbContext dbContext, CancellationToken ct)
             {
                 if (specialist == null) return;
 
