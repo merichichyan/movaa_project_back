@@ -315,6 +315,16 @@ using (var scope = app.Services.CreateScope())
 
                 ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""ValidUntil"" text;
                 ALTER TABLE ""Offers"" ADD COLUMN IF NOT EXISTS ""OrderIndex"" integer DEFAULT 0;
+
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""IsMain"" boolean DEFAULT false;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Instagram"" text;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Facebook"" text;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""CategoriesJson"" text DEFAULT '[]';
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Latitude"" double precision;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Longitude"" double precision;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Email"" text;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""WorkingHours"" text DEFAULT '09:00 - 18:00';
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Status"" text DEFAULT 'ACTIVE';
             ");
         }
         catch (Exception migrationEx)
@@ -547,25 +557,41 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<movaa_project_back.Data.AppDbContext>();
-        try
-        {
-            dbContext.Database.ExecuteSqlRaw(@"
-                ALTER TABLE IF EXISTS ""Branches"" ADD COLUMN IF NOT EXISTS ""IsMain"" boolean NOT NULL DEFAULT false;
-                ALTER TABLE IF EXISTS ""Branches"" ADD COLUMN IF NOT EXISTS ""Instagram"" text NULL;
-                ALTER TABLE IF EXISTS ""Branches"" ADD COLUMN IF NOT EXISTS ""Facebook"" text NULL;
-            ");
-        }
-        catch { }
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ""Branches"" (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""OrganizationId"" uuid NOT NULL,
+                ""Name"" character varying(200) NOT NULL,
+                ""Slug"" character varying(200) NOT NULL DEFAULT '',
+                ""Address"" character varying(300) NOT NULL,
+                ""Latitude"" double precision,
+                ""Longitude"" double precision,
+                ""Phone"" character varying(50) NOT NULL DEFAULT '',
+                ""Email"" character varying(255),
+                ""WorkingHours"" character varying(100) NOT NULL DEFAULT '09:00 - 18:00',
+                ""CategoriesJson"" text NOT NULL DEFAULT '[]',
+                ""Status"" character varying(50) NOT NULL DEFAULT 'ACTIVE',
+                ""IsMain"" boolean NOT NULL DEFAULT false,
+                ""Instagram"" text,
+                ""Facebook"" text,
+                ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                ""UpdatedAt"" timestamp with time zone
+            );
 
-        try
-        {
-            dbContext.Database.ExecuteSqlRaw(@"
-                ALTER TABLE IF EXISTS ""branches"" ADD COLUMN IF NOT EXISTS ""IsMain"" boolean NOT NULL DEFAULT false;
-                ALTER TABLE IF EXISTS ""branches"" ADD COLUMN IF NOT EXISTS ""Instagram"" text NULL;
-                ALTER TABLE IF EXISTS ""branches"" ADD COLUMN IF NOT EXISTS ""Facebook"" text NULL;
-            ");
-        }
-        catch { }
+            CREATE TABLE IF NOT EXISTS ""SpecialistBranches"" (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""SpecialistId"" uuid NOT NULL,
+                ""BranchId"" uuid NOT NULL,
+                ""OrganizationId"" uuid NOT NULL,
+                ""Status"" character varying(50) NOT NULL DEFAULT 'ACTIVE',
+                ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT now(),
+                ""UpdatedAt"" timestamp with time zone
+            );
+
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""IsMain"" boolean NOT NULL DEFAULT false;
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Instagram"" text NULL;
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Facebook"" text NULL;
+        ");
     }
     catch (Exception ex)
     {

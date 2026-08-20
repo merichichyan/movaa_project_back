@@ -195,47 +195,59 @@ namespace movaa_project_back.Presentation.Endpoints
             // POST /api/organizations/{orgId}/branches & /api/salons/{orgId}/branches
             async Task<IResult> CreateBranchHandler(Guid orgId, [FromBody] CreateBranchDto dto, AppDbContext dbContext, CancellationToken ct)
             {
-                var isMain = dto.IsMain ?? false;
-                if (isMain)
+                try
                 {
-                    var existingMains = await dbContext.Branches.Where(b => b.OrganizationId == orgId && b.IsMain).ToListAsync(ct);
-                    foreach (var m in existingMains)
+                    var isMain = dto.IsMain ?? false;
+                    if (isMain)
                     {
-                        m.SetIsMain(false);
-                    }
-                }
-
-                var branch = new Branch(
-                    organizationId: orgId,
-                    name: dto.Name,
-                    address: dto.Address,
-                    phone: dto.Phone,
-                    email: dto.Email,
-                    workingHours: dto.WorkingHours ?? "09:00 - 18:00",
-                    latitude: dto.Latitude,
-                    longitude: dto.Longitude,
-                    isMain: isMain,
-                    instagram: dto.Instagram,
-                    facebook: dto.Facebook
-                );
-
-                dbContext.Branches.Add(branch);
-
-                if (dto.SpecialistIds != null)
-                {
-                    foreach (var sIdStr in dto.SpecialistIds)
-                    {
-                        if (Guid.TryParse(sIdStr, out var sGuid))
+                        try
                         {
-                            var link = new SpecialistBranch(sGuid, branch.Id, orgId);
-                            dbContext.SpecialistBranches.Add(link);
+                            var existingMains = await dbContext.Branches.Where(b => b.OrganizationId == orgId && b.IsMain).ToListAsync(ct);
+                            foreach (var m in existingMains)
+                            {
+                                m.SetIsMain(false);
+                            }
+                        }
+                        catch { }
+                    }
+
+                    var branch = new Branch(
+                        organizationId: orgId,
+                        name: dto.Name,
+                        address: dto.Address,
+                        phone: dto.Phone,
+                        email: dto.Email,
+                        workingHours: dto.WorkingHours ?? "09:00 - 18:00",
+                        latitude: dto.Latitude,
+                        longitude: dto.Longitude,
+                        isMain: isMain,
+                        instagram: dto.Instagram,
+                        facebook: dto.Facebook
+                    );
+
+                    dbContext.Branches.Add(branch);
+
+                    if (dto.SpecialistIds != null)
+                    {
+                        foreach (var sIdStr in dto.SpecialistIds)
+                        {
+                            if (Guid.TryParse(sIdStr, out var sGuid))
+                            {
+                                var link = new SpecialistBranch(sGuid, branch.Id, orgId);
+                                dbContext.SpecialistBranches.Add(link);
+                            }
                         }
                     }
-                }
 
-                await dbContext.SaveChangesAsync(ct);
-                var res = await MapBranchResponseAsync(branch, dbContext, ct);
-                return Results.Created($"/api/organizations/{orgId}/branches/{branch.Id}", res);
+                    await dbContext.SaveChangesAsync(ct);
+                    var res = await MapBranchResponseAsync(branch, dbContext, ct);
+                    return Results.Created($"/api/organizations/{orgId}/branches/{branch.Id}", res);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"CreateBranch Error: {ex.Message}");
+                    return Results.BadRequest(new { message = ex.Message });
+                }
             }
 
             orgGroup.MapPost("/{orgId:guid}/branches", CreateBranchHandler);
@@ -244,54 +256,70 @@ namespace movaa_project_back.Presentation.Endpoints
             // PUT /api/organizations/{orgId}/branches/{branchId} & /api/salons/{orgId}/branches/{branchId}
             async Task<IResult> UpdateBranchHandler(Guid orgId, Guid branchId, [FromBody] UpdateBranchDto dto, AppDbContext dbContext, CancellationToken ct)
             {
-                var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId && b.OrganizationId == orgId, ct);
-                if (branch == null)
+                try
                 {
-                    branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId, ct);
-                }
-                if (branch == null) return Results.NotFound(new { message = "Branch not found." });
-
-                if (dto.IsMain == true)
-                {
-                    var existingMains = await dbContext.Branches.Where(b => b.OrganizationId == branch.OrganizationId && b.Id != branch.Id && b.IsMain).ToListAsync(ct);
-                    foreach (var m in existingMains)
+                    var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId && b.OrganizationId == orgId, ct);
+                    if (branch == null)
                     {
-                        m.SetIsMain(false);
+                        branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId, ct);
                     }
-                }
+                    if (branch == null) return Results.NotFound(new { message = "Branch not found." });
 
-                branch.Update(
-                    name: dto.Name,
-                    address: dto.Address,
-                    phone: dto.Phone,
-                    latitude: dto.Latitude,
-                    longitude: dto.Longitude,
-                    email: dto.Email,
-                    workingHours: dto.WorkingHours,
-                    status: dto.Status,
-                    isMain: dto.IsMain,
-                    instagram: dto.Instagram,
-                    facebook: dto.Facebook
-                );
-
-                if (dto.SpecialistIds != null)
-                {
-                    var existingLinks = await dbContext.SpecialistBranches.Where(sb => sb.BranchId == branchId).ToListAsync(ct);
-                    dbContext.SpecialistBranches.RemoveRange(existingLinks);
-
-                    foreach (var sIdStr in dto.SpecialistIds)
+                    if (dto.IsMain == true)
                     {
-                        if (Guid.TryParse(sIdStr, out var sGuid))
+                        try
                         {
-                            var link = new SpecialistBranch(sGuid, branch.Id, branch.OrganizationId);
-                            dbContext.SpecialistBranches.Add(link);
+                            var existingMains = await dbContext.Branches.Where(b => b.OrganizationId == branch.OrganizationId && b.Id != branch.Id && b.IsMain).ToListAsync(ct);
+                            foreach (var m in existingMains)
+                            {
+                                m.SetIsMain(false);
+                            }
                         }
+                        catch { }
                     }
-                }
 
-                await dbContext.SaveChangesAsync(ct);
-                var res = await MapBranchResponseAsync(branch, dbContext, ct);
-                return Results.Ok(res);
+                    branch.Update(
+                        name: dto.Name,
+                        address: dto.Address,
+                        phone: dto.Phone,
+                        latitude: dto.Latitude,
+                        longitude: dto.Longitude,
+                        email: dto.Email,
+                        workingHours: dto.WorkingHours,
+                        status: dto.Status,
+                        isMain: dto.IsMain,
+                        instagram: dto.Instagram,
+                        facebook: dto.Facebook
+                    );
+
+                    if (dto.SpecialistIds != null)
+                    {
+                        try
+                        {
+                            var existingLinks = await dbContext.SpecialistBranches.Where(sb => sb.BranchId == branchId).ToListAsync(ct);
+                            dbContext.SpecialistBranches.RemoveRange(existingLinks);
+
+                            foreach (var sIdStr in dto.SpecialistIds)
+                            {
+                                if (Guid.TryParse(sIdStr, out var sGuid))
+                                {
+                                    var link = new SpecialistBranch(sGuid, branch.Id, branch.OrganizationId);
+                                    dbContext.SpecialistBranches.Add(link);
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+
+                    await dbContext.SaveChangesAsync(ct);
+                    var res = await MapBranchResponseAsync(branch, dbContext, ct);
+                    return Results.Ok(res);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"UpdateBranch Error: {ex.Message}");
+                    return Results.BadRequest(new { message = ex.Message });
+                }
             }
 
             orgGroup.MapPut("/{orgId:guid}/branches/{branchId:guid}", UpdateBranchHandler);
@@ -306,21 +334,33 @@ namespace movaa_project_back.Presentation.Endpoints
             // DELETE /api/organizations/{orgId}/branches/{branchId} & /api/salons/{orgId}/branches/{branchId} & /api/branches/{branchId}
             async Task<IResult> DeleteBranchHandler(Guid orgId, Guid branchId, AppDbContext dbContext, CancellationToken ct)
             {
-                var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId, ct);
-                if (branch == null) return Results.NotFound(new { message = "Branch not found." });
-
-                if (branch.IsMain)
+                try
                 {
-                    return Results.BadRequest(new { message = "Cannot delete main branch." });
+                    var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId, ct);
+                    if (branch == null) return Results.NotFound(new { message = "Branch not found." });
+
+                    if (branch.IsMain)
+                    {
+                        return Results.BadRequest(new { message = "Cannot delete main branch." });
+                    }
+
+                    try
+                    {
+                        var specLinks = await dbContext.SpecialistBranches.Where(sb => sb.BranchId == branchId).ToListAsync(ct);
+                        dbContext.SpecialistBranches.RemoveRange(specLinks);
+                    }
+                    catch { }
+
+                    dbContext.Branches.Remove(branch);
+                    await dbContext.SaveChangesAsync(ct);
+
+                    return Results.Ok(new { message = "Branch deleted successfully." });
                 }
-
-                var specLinks = await dbContext.SpecialistBranches.Where(sb => sb.BranchId == branchId).ToListAsync(ct);
-                dbContext.SpecialistBranches.RemoveRange(specLinks);
-
-                dbContext.Branches.Remove(branch);
-                await dbContext.SaveChangesAsync(ct);
-
-                return Results.Ok(new { message = "Branch deleted successfully." });
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"DeleteBranch Error: {ex.Message}");
+                    return Results.BadRequest(new { message = ex.Message });
+                }
             }
 
             orgGroup.MapDelete("/{orgId:guid}/branches/{branchId:guid}", DeleteBranchHandler);
