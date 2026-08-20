@@ -44,164 +44,164 @@ namespace movaa_project_back.Presentation.Endpoints
 
     public static class ServiceEndpoints
     {
-        public static IEndpointRouteBuilder MapServiceEndpoints(this IEndpointRouteBuilder app)
+        // Bi-directional sync helper: Service -> Specialists
+        public static async Task SyncServiceToSpecialistsAsync(ServiceItem service, List<string>? selectedSpecIdStrs, AppDbContext dbContext, CancellationToken ct)
         {
-            var apiGroup = app.MapGroup("/api/services").WithTags("Services");
-            var adminGroup = app.MapGroup("/api/admin/services").WithTags("Services Admin");
+            selectedSpecIdStrs ??= new List<string>();
+            var targetSpecGuids = selectedSpecIdStrs
+                .Select(s => Guid.TryParse(s, out var g) ? g : (Guid?)null)
+                .Where(g => g.HasValue)
+                .Select(g => g!.Value)
+                .ToList();
 
-            // Bi-directional sync helper: Service -> Specialists
-            static async Task SyncServiceToSpecialistsAsync(ServiceItem service, List<string>? selectedSpecIdStrs, AppDbContext dbContext, CancellationToken ct)
+            // Save specialistIds on ServiceItem
+            service.SetSpecialistIdsJson(JsonSerializer.Serialize(targetSpecGuids.Select(g => g.ToString())));
+
+            var allSpecialists = await dbContext.Specialists.ToListAsync(ct);
+
+            foreach (var sp in allSpecialists)
             {
-                selectedSpecIdStrs ??= new List<string>();
-                var targetSpecGuids = selectedSpecIdStrs
-                    .Select(s => Guid.TryParse(s, out var g) ? g : (Guid?)null)
-                    .Where(g => g.HasValue)
-                    .Select(g => g!.Value)
-                    .ToList();
-
-                // Save specialistIds on ServiceItem
-                service.SetSpecialistIdsJson(JsonSerializer.Serialize(targetSpecGuids.Select(g => g.ToString())));
-
-                var allSpecialists = await dbContext.Specialists.ToListAsync(ct);
-
-                foreach (var sp in allSpecialists)
-                {
-                    List<Dictionary<string, object>> list = new();
-                    try
-                    {
-                        if (!string.IsNullOrWhiteSpace(sp.ServicesJson))
-                        {
-                            list = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(sp.ServicesJson) ?? new();
-                        }
-                    }
-                    catch { }
-
-                    bool isTarget = targetSpecGuids.Contains(sp.Id);
-                    var sIdStr = service.Id.ToString();
-                    var sNameLower = service.Name.Trim().ToLower();
-
-                    int existingIdx = list.FindIndex(item =>
-                    {
-                        var itemId = item.TryGetValue("id", out var idVal) ? idVal?.ToString() : null;
-                        var itemName = item.TryGetValue("name", out var nameVal) ? nameVal?.ToString() : null;
-                        return itemId == sIdStr || (itemName != null && itemName.Trim().ToLower() == sNameLower);
-                    });
-
-                    if (isTarget)
-                    {
-                        var serviceDict = new Dictionary<string, object>
-                        {
-                            ["id"] = sIdStr,
-                            ["name"] = service.Name,
-                            ["nameHy"] = service.NameHy,
-                            ["price"] = service.Price,
-                            ["duration"] = service.DurationMinutes,
-                            ["category"] = service.Category
-                        };
-
-                        if (existingIdx >= 0)
-                        {
-                            list[existingIdx] = serviceDict;
-                        }
-                        else
-                        {
-                            list.Add(serviceDict);
-                        }
-                    }
-                    else
-                    {
-                        if (existingIdx >= 0)
-                        {
-                            list.RemoveAt(existingIdx);
-                        }
-                    }
-
-                    sp.Update(
-                        name: sp.Name,
-                        category: sp.Category,
-                        phone: sp.Phone,
-                        nameHy: sp.NameHy,
-                        nameEn: sp.NameEn,
-                        nameRu: sp.NameRu,
-                        jobTitle: sp.JobTitle,
-                        jobTitleHy: sp.JobTitleHy,
-                        jobTitleEn: sp.JobTitleEn,
-                        jobTitleRu: sp.JobTitleRu,
-                        email: sp.Email,
-                        salonId: sp.SalonId,
-                        salonName: sp.SalonName,
-                        avatarUrl: sp.AvatarUrl,
-                        bio: sp.Bio,
-                        bioHy: sp.BioHy,
-                        bioEn: sp.BioEn,
-                        bioRu: sp.BioRu,
-                        experienceYears: sp.ExperienceYears,
-                        workingHours: sp.WorkingHours,
-                        commissionRate: sp.CommissionRate,
-                        servicesJson: JsonSerializer.Serialize(list),
-                        workplacesJson: sp.WorkplacesJson
-                    );
-                }
-            }
-
-            // Bi-directional sync helper: Specialist -> Services
-            static async Task SyncSpecialistToServicesAsync(Specialist specialist, AppDbContext dbContext, CancellationToken ct)
-            {
-                if (specialist == null) return;
-
-                List<Dictionary<string, object>> specServices = new();
+                List<Dictionary<string, object>> list = new();
                 try
                 {
-                    if (!string.IsNullOrWhiteSpace(specialist.ServicesJson))
+                    if (!string.IsNullOrWhiteSpace(sp.ServicesJson))
                     {
-                        specServices = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(specialist.ServicesJson) ?? new();
+                        list = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(sp.ServicesJson) ?? new();
                     }
                 }
                 catch { }
 
-                var spIdStr = specialist.Id.ToString();
-                var allServices = await dbContext.Services.ToListAsync(ct);
+                bool isTarget = targetSpecGuids.Contains(sp.Id);
+                var sIdStr = service.Id.ToString();
+                var sNameLower = service.Name.Trim().ToLower();
 
-                foreach (var srv in allServices)
+                int existingIdx = list.FindIndex(item =>
                 {
-                    List<string> linkedSpecIds = new();
-                    try
-                    {
-                        if (!string.IsNullOrWhiteSpace(srv.SpecialistIdsJson))
-                        {
-                            linkedSpecIds = JsonSerializer.Deserialize<List<string>>(srv.SpecialistIdsJson) ?? new();
-                        }
-                    }
-                    catch { }
+                    var itemId = item.TryGetValue("id", out var idVal) ? idVal?.ToString() : null;
+                    var itemName = item.TryGetValue("name", out var nameVal) ? nameVal?.ToString() : null;
+                    return itemId == sIdStr || (itemName != null && itemName.Trim().ToLower() == sNameLower);
+                });
 
-                    var srvIdStr = srv.Id.ToString();
-                    var srvNameLower = srv.Name.Trim().ToLower();
-
-                    bool shouldBeLinked = specServices.Any(item =>
+                if (isTarget)
+                {
+                    var serviceDict = new Dictionary<string, object>
                     {
-                        var itemId = item.TryGetValue("id", out var idVal) ? idVal?.ToString() : null;
-                        var itemName = item.TryGetValue("name", out var nameVal) ? nameVal?.ToString() : null;
-                        return itemId == srvIdStr || (itemName != null && itemName.Trim().ToLower() == srvNameLower);
-                    });
+                        ["id"] = sIdStr,
+                        ["name"] = service.Name,
+                        ["nameHy"] = service.NameHy,
+                        ["price"] = service.Price,
+                        ["duration"] = service.DurationMinutes,
+                        ["category"] = service.Category
+                    };
 
-                    if (shouldBeLinked)
+                    if (existingIdx >= 0)
                     {
-                        if (!linkedSpecIds.Contains(spIdStr))
-                        {
-                            linkedSpecIds.Add(spIdStr);
-                            srv.SetSpecialistIdsJson(JsonSerializer.Serialize(linkedSpecIds));
-                        }
+                        list[existingIdx] = serviceDict;
                     }
                     else
                     {
-                        if (linkedSpecIds.Contains(spIdStr))
-                        {
-                            linkedSpecIds.Remove(spIdStr);
-                            srv.SetSpecialistIdsJson(JsonSerializer.Serialize(linkedSpecIds));
-                        }
+                        list.Add(serviceDict);
+                    }
+                }
+                else
+                {
+                    if (existingIdx >= 0)
+                    {
+                        list.RemoveAt(existingIdx);
+                    }
+                }
+
+                sp.Update(
+                    name: sp.Name,
+                    category: sp.Category,
+                    phone: sp.Phone,
+                    nameHy: sp.NameHy,
+                    nameEn: sp.NameEn,
+                    nameRu: sp.NameRu,
+                    jobTitle: sp.JobTitle,
+                    jobTitleHy: sp.JobTitleHy,
+                    jobTitleEn: sp.JobTitleEn,
+                    jobTitleRu: sp.JobTitleRu,
+                    email: sp.Email,
+                    salonId: sp.SalonId,
+                    salonName: sp.SalonName,
+                    avatarUrl: sp.AvatarUrl,
+                    bio: sp.Bio,
+                    bioHy: sp.BioHy,
+                    bioEn: sp.BioEn,
+                    bioRu: sp.BioRu,
+                    experienceYears: sp.ExperienceYears,
+                    workingHours: sp.WorkingHours,
+                    commissionRate: sp.CommissionRate,
+                    servicesJson: JsonSerializer.Serialize(list),
+                    workplacesJson: sp.WorkplacesJson
+                );
+            }
+        }
+
+        // Bi-directional sync helper: Specialist -> Services
+        public static async Task SyncSpecialistToServicesAsync(Specialist specialist, AppDbContext dbContext, CancellationToken ct)
+        {
+            if (specialist == null) return;
+
+            List<Dictionary<string, object>> specServices = new();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(specialist.ServicesJson))
+                {
+                    specServices = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(specialist.ServicesJson) ?? new();
+                }
+            }
+            catch { }
+
+            var spIdStr = specialist.Id.ToString();
+            var allServices = await dbContext.Services.ToListAsync(ct);
+
+            foreach (var srv in allServices)
+            {
+                List<string> linkedSpecIds = new();
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(srv.SpecialistIdsJson))
+                    {
+                        linkedSpecIds = JsonSerializer.Deserialize<List<string>>(srv.SpecialistIdsJson) ?? new();
+                    }
+                }
+                catch { }
+
+                var srvIdStr = srv.Id.ToString();
+                var srvNameLower = srv.Name.Trim().ToLower();
+
+                bool shouldBeLinked = specServices.Any(item =>
+                {
+                    var itemId = item.TryGetValue("id", out var idVal) ? idVal?.ToString() : null;
+                    var itemName = item.TryGetValue("name", out var nameVal) ? nameVal?.ToString() : null;
+                    return itemId == srvIdStr || (itemName != null && itemName.Trim().ToLower() == srvNameLower);
+                });
+
+                if (shouldBeLinked)
+                {
+                    if (!linkedSpecIds.Contains(spIdStr))
+                    {
+                        linkedSpecIds.Add(spIdStr);
+                        srv.SetSpecialistIdsJson(JsonSerializer.Serialize(linkedSpecIds));
+                    }
+                }
+                else
+                {
+                    if (linkedSpecIds.Contains(spIdStr))
+                    {
+                        linkedSpecIds.Remove(spIdStr);
+                        srv.SetSpecialistIdsJson(JsonSerializer.Serialize(linkedSpecIds));
                     }
                 }
             }
+        }
+
+        public static IEndpointRouteBuilder MapServiceEndpoints(this IEndpointRouteBuilder app)
+        {
+            var apiGroup = app.MapGroup("/api/services").WithTags("Services");
+            var adminGroup = app.MapGroup("/api/admin/services").WithTags("Services Admin");
 
             // Map Service response DTO
             static object MapServiceResponse(ServiceItem s, AppDbContext dbContext)
