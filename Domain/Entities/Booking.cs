@@ -74,5 +74,29 @@ namespace movaa_project_back.Domain.Entities
                 Status = status.Trim();
             }
         }
+
+        public void UpdateDetails(
+            Guid? specialistId = null,
+            string? specialistName = null,
+            string? serviceName = null,
+            decimal? price = null,
+            int? durationMinutes = null,
+            DateTime? bookingDate = null,
+            string? timeSlot = null,
+            string? status = null,
+            Guid? salonId = null,
+            string? salonName = null)
+        {
+            if (specialistId.HasValue && specialistId.Value != Guid.Empty) SpecialistId = specialistId.Value;
+            if (!string.IsNullOrWhiteSpace(specialistName)) SpecialistName = specialistName;
+            if (!string.IsNullOrWhiteSpace(serviceName)) ServiceName = serviceName;
+            if (price.HasValue && price.Value > 0) Price = price.Value;
+            if (durationMinutes.HasValue && durationMinutes.Value > 0) DurationMinutes = durationMinutes.Value;
+            if (bookingDate.HasValue) BookingDate = bookingDate.Value.Kind == DateTimeKind.Utc ? bookingDate.Value : DateTime.SpecifyKind(bookingDate.Value, DateTimeKind.Utc);
+            if (!string.IsNullOrWhiteSpace(timeSlot)) TimeSlot = timeSlot;
+            if (!string.IsNullOrWhiteSpace(status)) Status = status.Trim();
+            if (salonId.HasValue && salonId.Value != Guid.Empty) SalonId = salonId.Value;
+            if (!string.IsNullOrWhiteSpace(salonName)) SalonName = salonName;
+        }
     }
 }

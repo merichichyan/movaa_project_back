@@ -264,6 +264,58 @@ namespace movaa_project_back.Presentation.Endpoints
             })
             .WithSummary("Cancel a booking");
 
+            group.MapPut("/{id:guid}", async (Guid id, [FromBody] UpdateBookingRequest request, AppDbContext context, CancellationToken ct) =>
+            {
+                var booking = await context.Bookings.FirstOrDefaultAsync(b => b.Id == id, ct);
+                if (booking == null)
+                {
+                    return Results.NotFound(new { message = "Booking not found" });
+                }
+
+                booking.UpdateDetails(
+                    request.SpecialistId,
+                    request.SpecialistName,
+                    request.ServiceName,
+                    request.Price,
+                    request.DurationMinutes,
+                    request.BookingDate,
+                    request.TimeSlot,
+                    request.Status,
+                    request.SalonId,
+                    request.SalonName
+                );
+
+                await context.SaveChangesAsync(ct);
+                return Results.Ok(booking);
+            })
+            .WithSummary("Update a booking (PUT)");
+
+            group.MapPatch("/{id:guid}", async (Guid id, [FromBody] UpdateBookingRequest request, AppDbContext context, CancellationToken ct) =>
+            {
+                var booking = await context.Bookings.FirstOrDefaultAsync(b => b.Id == id, ct);
+                if (booking == null)
+                {
+                    return Results.NotFound(new { message = "Booking not found" });
+                }
+
+                booking.UpdateDetails(
+                    request.SpecialistId,
+                    request.SpecialistName,
+                    request.ServiceName,
+                    request.Price,
+                    request.DurationMinutes,
+                    request.BookingDate,
+                    request.TimeSlot,
+                    request.Status,
+                    request.SalonId,
+                    request.SalonName
+                );
+
+                await context.SaveChangesAsync(ct);
+                return Results.Ok(booking);
+            })
+            .WithSummary("Update a booking (PATCH)");
+
             return app;
         }
 
@@ -294,5 +346,20 @@ namespace movaa_project_back.Presentation.Endpoints
         string? SpecialistName = null,
         Guid? SalonId = null,
         string? SalonName = null
+    );
+
+    public record UpdateBookingRequest(
+        Guid? SpecialistId = null,
+        string? SpecialistName = null,
+        string? ServiceName = null,
+        decimal? Price = null,
+        int? DurationMinutes = null,
+        DateTime? BookingDate = null,
+        string? TimeSlot = null,
+        string? Status = null,
+        Guid? SalonId = null,
+        string? SalonName = null,
+        string? UserName = null,
+        string? UserPhone = null
     );
 }
