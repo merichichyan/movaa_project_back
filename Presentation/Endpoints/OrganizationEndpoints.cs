@@ -193,6 +193,33 @@ namespace movaa_project_back.Presentation.Endpoints
             app.MapGet("/api/salons/{orgId:guid}/branches", GetBranchesHandler);
             app.MapGet("/api/admin/salons/{orgId:guid}/branches", GetBranchesHandler);
 
+            app.MapGet("/api/branches", async ([FromQuery] Guid? salonId, [FromQuery] Guid? organizationId, AppDbContext dbContext, CancellationToken ct) =>
+            {
+                var targetId = salonId ?? organizationId;
+                if (targetId.HasValue && targetId.Value != Guid.Empty)
+                {
+                    return await GetBranchesHandler(targetId.Value, dbContext, ct);
+                }
+
+                try
+                {
+                    var branches = await dbContext.Branches
+                        .OrderByDescending(b => b.CreatedAt)
+                        .ToListAsync(ct);
+                    var resultList = new List<object>();
+                    foreach (var b in branches)
+                    {
+                        resultList.Add(await MapBranchResponseAsync(b, dbContext, ct));
+                    }
+                    return Results.Ok(resultList);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"GetAllBranches Error: {ex.Message}");
+                    return Results.Ok(new List<object>());
+                }
+            });
+
             // POST /api/organizations/{orgId}/branches & /api/salons/{orgId}/branches & /api/admin/salons/{orgId}/branches
             async Task<IResult> CreateBranchHandler(Guid orgId, [FromBody] CreateBranchDto dto, AppDbContext dbContext, CancellationToken ct)
             {

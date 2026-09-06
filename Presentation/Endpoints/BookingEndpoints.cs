@@ -225,44 +225,68 @@ namespace movaa_project_back.Presentation.Endpoints
 
             group.MapGet("", [Authorize] async (ClaimsPrincipal principal, AppDbContext context, CancellationToken ct) =>
             {
-                var userIdClaim = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                try
                 {
-                    return Results.Unauthorized();
+                    var userIdClaim = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var bookings = await context.Bookings
+                                                .Where(b => b.UserId == userId)
+                                                .OrderByDescending(b => b.BookingDate)
+                                                .ToListAsync(ct);
+
+                    await PopulateUserDetailsAsync(context, bookings, ct);
+                    return Results.Ok(bookings);
                 }
-
-                var bookings = await context.Bookings
-                                            .Where(b => b.UserId == userId)
-                                            .OrderByDescending(b => b.BookingDate)
-                                            .ToListAsync(ct);
-
-                await PopulateUserDetailsAsync(context, bookings, ct);
-                return Results.Ok(bookings);
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"GetUserBookings Error: {ex.Message}");
+                    return Results.Ok(new List<Booking>());
+                }
             })
             .WithSummary("Get user bookings");
 
             group.MapGet("/specialist/{specialistId:guid}", async (Guid specialistId, AppDbContext context, CancellationToken ct) =>
             {
-                var cutoffDate = DateTime.UtcNow.AddDays(-90);
-                var bookings = await context.Bookings
-                                            .Where(b => b.SpecialistId == specialistId && b.BookingDate >= cutoffDate && b.Status != "Cancelled" && b.Status != "Rejected")
-                                            .OrderByDescending(b => b.BookingDate)
-                                            .ToListAsync(ct);
+                try
+                {
+                    var cutoffDate = DateTime.UtcNow.AddDays(-90);
+                    var bookings = await context.Bookings
+                                                .Where(b => b.SpecialistId == specialistId && b.BookingDate >= cutoffDate && b.Status != "Cancelled" && b.Status != "Rejected")
+                                                .OrderByDescending(b => b.BookingDate)
+                                                .ToListAsync(ct);
 
-                await PopulateUserDetailsAsync(context, bookings, ct);
-                return Results.Ok(bookings);
+                    await PopulateUserDetailsAsync(context, bookings, ct);
+                    return Results.Ok(bookings);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"GetSpecialistBookings Error: {ex.Message}");
+                    return Results.Ok(new List<Booking>());
+                }
             })
             .WithSummary("Get specialist bookings");
 
             group.MapGet("/salon/{salonId:guid}", async (Guid salonId, AppDbContext context, CancellationToken ct) =>
             {
-                var bookings = await context.Bookings
-                                            .Where(b => b.SalonId == salonId && b.Status != "Cancelled" && b.Status != "Rejected")
-                                            .OrderByDescending(b => b.BookingDate)
-                                            .ToListAsync(ct);
+                try
+                {
+                    var bookings = await context.Bookings
+                                                .Where(b => b.SalonId == salonId && b.Status != "Cancelled" && b.Status != "Rejected")
+                                                .OrderByDescending(b => b.BookingDate)
+                                                .ToListAsync(ct);
 
-                await PopulateUserDetailsAsync(context, bookings, ct);
-                return Results.Ok(bookings);
+                    await PopulateUserDetailsAsync(context, bookings, ct);
+                    return Results.Ok(bookings);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"GetSalonBookings Error: {ex.Message}");
+                    return Results.Ok(new List<Booking>());
+                }
             })
             .WithSummary("Get salon bookings");
 
@@ -349,16 +373,25 @@ namespace movaa_project_back.Presentation.Endpoints
 
         static async Task PopulateUserDetailsAsync(AppDbContext context, List<Booking> bookings, CancellationToken ct)
         {
-            if (bookings.Count == 0) return;
-            var userIds = bookings.Select(b => b.UserId).Distinct().ToList();
-            var users = await context.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, ct);
-            foreach (var b in bookings)
+            try
             {
-                if (users.TryGetValue(b.UserId, out var u))
+                if (bookings.Count == 0) return;
+                var userIds = bookings.Select(b => b.UserId).Where(id => id != Guid.Empty).Distinct().ToList();
+                if (userIds.Count == 0) return;
+                var users = await context.Users.Where(u => userIds.Contains(u.Id)).ToListAsync(ct);
+                var userDict = users.GroupBy(u => u.Id).ToDictionary(g => g.Key, g => g.First());
+                foreach (var b in bookings)
                 {
-                    b.UserName = u.FullName;
-                    b.UserPhone = u.Phone;
+                    if (userDict.TryGetValue(b.UserId, out var u))
+                    {
+                        if (string.IsNullOrWhiteSpace(b.UserName)) b.UserName = u.FullName;
+                        if (string.IsNullOrWhiteSpace(b.UserPhone)) b.UserPhone = u.Phone;
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"PopulateUserDetailsAsync Error: {ex.Message}");
             }
         }
     }
