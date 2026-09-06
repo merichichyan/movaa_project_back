@@ -595,8 +595,14 @@ using (var scope = app.Services.CreateScope())
                 ""Id"" uuid NOT NULL PRIMARY KEY,
                 ""OrganizationId"" uuid NOT NULL,
                 ""Name"" character varying(200) NOT NULL,
+                ""NameHy"" text,
+                ""NameEn"" text,
+                ""NameRu"" text,
                 ""Slug"" character varying(200) NOT NULL DEFAULT '',
                 ""Address"" character varying(300) NOT NULL,
+                ""AddressHy"" text,
+                ""AddressEn"" text,
+                ""AddressRu"" text,
                 ""Latitude"" double precision,
                 ""Longitude"" double precision,
                 ""Phone"" character varying(50) NOT NULL DEFAULT '',
@@ -621,6 +627,12 @@ using (var scope = app.Services.CreateScope())
                 ""UpdatedAt"" timestamp with time zone
             );
 
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""NameRu"" text;
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""AddressHy"" text;
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""AddressEn"" text;
+            ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""AddressRu"" text;
             ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""IsMain"" boolean NOT NULL DEFAULT false;
             ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Instagram"" text NULL;
             ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""Facebook"" text NULL;

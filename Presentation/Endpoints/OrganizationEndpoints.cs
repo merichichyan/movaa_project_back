@@ -273,8 +273,9 @@ namespace movaa_project_back.Presentation.Endpoints
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"CreateBranch Error: {ex.Message}");
-                    return Results.BadRequest(new { message = ex.Message });
+                    var msg = ex.InnerException?.Message ?? ex.Message;
+                    Console.WriteLine($"CreateBranch Error: {ex.Message} -> {msg}");
+                    return Results.BadRequest(new { message = msg });
                 }
             }
 
