@@ -527,6 +527,14 @@ public static class AdminEndpoints
                         sp.Email,
                         sp.SalonId,
                         sp.SalonName,
+                        branchIds = dbContext.SpecialistBranches
+                            .Where(sb => sb.SpecialistId == sp.Id)
+                            .Select(sb => sb.BranchId.ToString())
+                            .ToList(),
+                        branchId = dbContext.SpecialistBranches
+                            .Where(sb => sb.SpecialistId == sp.Id)
+                            .Select(sb => sb.BranchId.ToString())
+                            .FirstOrDefault(),
                         sp.AvatarUrl,
                         sp.Bio,
                         sp.BioHy,
