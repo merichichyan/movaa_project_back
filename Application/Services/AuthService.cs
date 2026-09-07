@@ -99,10 +99,10 @@ public class AuthService : IAuthService
         var cleanDigits = System.Text.RegularExpressions.Regex.Replace(phoneInput, @"\D", "");
         var localDigits = cleanDigits.StartsWith("374") && cleanDigits.Length > 3 ? cleanDigits.Substring(3) : cleanDigits;
 
+        var usersList = await _dbContext.Users.ToListAsync(ct);
         var user = await _userRepository.GetByPhoneAsync(phoneInput, ct);
         if (user == null && localDigits.Length >= 4)
         {
-            var usersList = await _dbContext.Users.ToListAsync(ct);
             user = usersList.FirstOrDefault(u => {
                 var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
                 var uLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
@@ -117,13 +117,78 @@ public class AuthService : IAuthService
             return (localDigits.Length >= 4 && (pDigits.EndsWith(localDigits) || oDigits.EndsWith(localDigits)));
         });
 
-        if (user == null && matchedSalon == null)
+        var specialists = await _dbContext.Specialists.ToListAsync(ct);
+        var matchedSpecialist = specialists.FirstOrDefault(sp => {
+            var spDigits = System.Text.RegularExpressions.Regex.Replace(sp.Phone ?? "", @"\D", "");
+            var spLocal = spDigits.StartsWith("374") && spDigits.Length > 3 ? spDigits.Substring(3) : spDigits;
+            return (localDigits.Length >= 4 && (spLocal.EndsWith(localDigits) || localDigits.EndsWith(spLocal)));
+        });
+
+        // If user is null but a matching Salon or Specialist is found, try resolving user via entity attributes
+        if (user == null && matchedSalon != null)
+        {
+            var pDigits = System.Text.RegularExpressions.Regex.Replace(matchedSalon.PhoneNumber ?? "", @"\D", "");
+            var oDigits = System.Text.RegularExpressions.Regex.Replace(matchedSalon.OwnerPhoneNumber ?? "", @"\D", "");
+            var pLocal = pDigits.StartsWith("374") && pDigits.Length > 3 ? pDigits.Substring(3) : pDigits;
+            var oLocal = oDigits.StartsWith("374") && oDigits.Length > 3 ? oDigits.Substring(3) : oDigits;
+
+            user = usersList.FirstOrDefault(u => {
+                var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                var uLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
+                if (pLocal.Length >= 4 && (uLocal.EndsWith(pLocal) || pLocal.EndsWith(uLocal))) return true;
+                if (oLocal.Length >= 4 && (uLocal.EndsWith(oLocal) || oLocal.EndsWith(uLocal))) return true;
+                if (!string.IsNullOrWhiteSpace(matchedSalon.Email) && !string.IsNullOrWhiteSpace(u.Email) && u.Email.Equals(matchedSalon.Email, StringComparison.OrdinalIgnoreCase)) return true;
+                return false;
+            });
+        }
+
+        if (user == null && matchedSpecialist != null)
+        {
+            var spDigits = System.Text.RegularExpressions.Regex.Replace(matchedSpecialist.Phone ?? "", @"\D", "");
+            var spLocal = spDigits.StartsWith("374") && spDigits.Length > 3 ? spDigits.Substring(3) : spDigits;
+
+            user = usersList.FirstOrDefault(u => {
+                var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                var uLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
+                if (spLocal.Length >= 4 && (uLocal.EndsWith(spLocal) || spLocal.EndsWith(uLocal))) return true;
+                if (!string.IsNullOrWhiteSpace(matchedSpecialist.Email) && !string.IsNullOrWhiteSpace(u.Email) && u.Email.Equals(matchedSpecialist.Email, StringComparison.OrdinalIgnoreCase)) return true;
+                return false;
+            });
+        }
+
+        if (user == null && matchedSalon == null && matchedSpecialist == null)
         {
             throw new UnauthorizedAccessException("Սխալ հեռախոսահամար կամ գաղտնաբառ։");
         }
 
+        // If user is still null but matchedSalon or matchedSpecialist exists, auto-create User entity on the fly
+        if (user == null)
+        {
+            var rawPhone = matchedSalon != null
+                ? (!string.IsNullOrWhiteSpace(matchedSalon.PhoneNumber) ? matchedSalon.PhoneNumber : matchedSalon.OwnerPhoneNumber)
+                : (matchedSpecialist != null ? matchedSpecialist.Phone : phoneInput);
+            var cleanPhoneDigits = System.Text.RegularExpressions.Regex.Replace(rawPhone ?? phoneInput, @"\D", "");
+            var formattedPhone = cleanPhoneDigits.StartsWith("374") ? "+" + cleanPhoneDigits : "+374" + cleanPhoneDigits.TrimStart('0');
+
+            var entityRole = matchedSalon != null ? "salon" : (matchedSpecialist != null ? "specialist" : "user");
+            var entityName = matchedSalon?.Name ?? matchedSpecialist?.Name ?? formattedPhone;
+            var entityEmail = matchedSalon?.Email ?? matchedSpecialist?.Email;
+
+            user = new User(
+                phone: formattedPhone,
+                passwordHash: BCrypt.Net.BCrypt.HashPassword(pass),
+                fullName: entityName,
+                role: entityRole,
+                email: entityEmail
+            );
+            user.UpdateStatus("Verified");
+            _dbContext.Users.Add(user);
+            await _dbContext.SaveChangesAsync(ct);
+        }
+
         if ((user != null && (user.IsBlocked || user.FailedLoginAttempts >= 5)) || 
-            (matchedSalon != null && (matchedSalon.IsBlocked || matchedSalon.FailedLoginAttempts >= 5)))
+            (matchedSalon != null && (matchedSalon.IsBlocked || matchedSalon.FailedLoginAttempts >= 5)) ||
+            (matchedSpecialist != null && (matchedSpecialist.IsBlocked || matchedSpecialist.FailedLoginAttempts >= 5)))
         {
             throw new InvalidOperationException("Ձեր հաշիվը արգելափակված է։ Խնդրում ենք կապ հաստատել ադմինիստրատորի հետ՝ +374 91 11 11 11");
         }
@@ -159,12 +224,13 @@ public class AuthService : IAuthService
 
         if (!isPasswordValid)
         {
-            if (user != null) user.RecordFailedLoginAttempt();
+            user.RecordFailedLoginAttempt();
             if (matchedSalon != null) matchedSalon.RecordFailedLoginAttempt();
+            if (matchedSpecialist != null) matchedSpecialist.RecordFailedLoginAttempt();
             await _dbContext.SaveChangesAsync(ct);
 
-            var attempts = user?.FailedLoginAttempts ?? matchedSalon?.FailedLoginAttempts ?? 1;
-            var remaining = 5 - attempts;
+            var attempts = Math.Max(user.FailedLoginAttempts, Math.Max(matchedSalon?.FailedLoginAttempts ?? 0, matchedSpecialist?.FailedLoginAttempts ?? 0));
+            var remaining = Math.Max(0, 5 - attempts);
             if (attempts >= 5)
             {
                 throw new InvalidOperationException("Դուք 5 անգամ սխալ եք հավաքել գաղտնաբառը։ Խնդրում ենք կապվել ադմինիստրատորի հետ՝ մուտքը վերականգնելու համար։");
@@ -175,8 +241,9 @@ public class AuthService : IAuthService
             }
         }
 
-        if (user != null) user.ResetFailedLoginAttempts();
+        user.ResetFailedLoginAttempts();
         if (matchedSalon != null) matchedSalon.ResetFailedLoginAttempts();
+        if (matchedSpecialist != null) matchedSpecialist.ResetFailedLoginAttempts();
         await _dbContext.SaveChangesAsync(ct);
 
         var token = _tokenGenerator.GenerateToken(user);
