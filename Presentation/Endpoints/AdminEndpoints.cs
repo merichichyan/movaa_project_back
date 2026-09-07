@@ -113,18 +113,36 @@ public static class AdminEndpoints
 
         adminGroup.MapPost("/users/{id:guid}/password", async (Guid id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
-            if (user == null) return Results.NotFound(new { message = "User not found." });
-
-            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 6)
+            try
             {
-                return Results.BadRequest(new { message = "Password must be at least 6 characters long." });
-            }
+                var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+                if (user == null) return Results.NotFound(new { message = "User not found." });
 
-            var newHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
-            user.UpdatePasswordHash(newHash);
-            await dbContext.SaveChangesAsync(ct);
-            return Results.Ok(new { message = "Password updated successfully." });
+                if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 6)
+                {
+                    return Results.BadRequest(new { message = "Password must be at least 6 characters long." });
+                }
+
+                var newHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword.Trim());
+                user.UpdatePasswordHash(newHash);
+                user.ResetFailedLoginAttempts();
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(new { message = "Password updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error changing user password: {ex}");
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;", ct);
+                    await dbContext.SaveChangesAsync(ct);
+                    return Results.Ok(new { message = "Password updated successfully." });
+                }
+                catch
+                {
+                    return Results.Problem(detail: ex.Message, statusCode: 500);
+                }
+            }
         })
         .WithSummary("Change user password by admin");
 
@@ -545,48 +563,89 @@ public static class AdminEndpoints
 
         async Task<IResult> ChangeSalonPasswordHandler(Guid id, ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct)
         {
-            var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == id, ct);
-            if (salon == null) return Results.NotFound(new { message = "Salon not found." });
-
-            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Trim().Length < 6)
+            try
             {
-                return Results.BadRequest(new { message = "Գաղտնաբառը պետք է լինի առնվազն 6 նիշ:" });
+                var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == id, ct);
+                if (salon == null) return Results.NotFound(new { message = "Salon not found." });
+
+                if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Trim().Length < 6)
+                {
+                    return Results.BadRequest(new { message = "Գաղտնաբառը պետք է լինի առնվազն 6 նիշ:" });
+                }
+
+                var newHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword.Trim());
+                var pDigits = System.Text.RegularExpressions.Regex.Replace(salon.PhoneNumber ?? "", @"\D", "");
+                var oDigits = System.Text.RegularExpressions.Regex.Replace(salon.OwnerPhoneNumber ?? "", @"\D", "");
+                var cleanLocal = pDigits.StartsWith("374") && pDigits.Length > 3 ? pDigits.Substring(3) : pDigits;
+                var cleanOwnerLocal = oDigits.StartsWith("374") && oDigits.Length > 3 ? oDigits.Substring(3) : oDigits;
+
+                var users = await dbContext.Users.ToListAsync(ct);
+                var user = users.FirstOrDefault(u => {
+                    var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                    var uLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
+                    if (cleanLocal.Length >= 4 && (uLocal.EndsWith(cleanLocal) || cleanLocal.EndsWith(uLocal))) return true;
+                    if (cleanOwnerLocal.Length >= 4 && (uLocal.EndsWith(cleanOwnerLocal) || cleanOwnerLocal.EndsWith(uLocal))) return true;
+                    if (!string.IsNullOrWhiteSpace(salon.Email) && !string.IsNullOrWhiteSpace(u.Email) && u.Email.Equals(salon.Email, StringComparison.OrdinalIgnoreCase)) return true;
+                    return false;
+                });
+
+                if (user != null)
+                {
+                    user.UpdatePasswordHash(newHash);
+                    user.ResetFailedLoginAttempts();
+                }
+                else
+                {
+                    var rawPhone = !string.IsNullOrWhiteSpace(salon.PhoneNumber) ? salon.PhoneNumber : (!string.IsNullOrWhiteSpace(salon.OwnerPhoneNumber) ? salon.OwnerPhoneNumber : "+37400000000");
+                    var cleanPhoneDigits = System.Text.RegularExpressions.Regex.Replace(rawPhone, @"\D", "");
+                    var formattedPhone = cleanPhoneDigits.StartsWith("374") ? "+" + cleanPhoneDigits : "+374" + cleanPhoneDigits.TrimStart('0');
+
+                    var existingByPhone = users.FirstOrDefault(u => {
+                        var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                        return uDigits == cleanPhoneDigits || u.Phone == formattedPhone;
+                    });
+
+                    if (existingByPhone != null)
+                    {
+                        existingByPhone.UpdatePasswordHash(newHash);
+                        existingByPhone.ResetFailedLoginAttempts();
+                    }
+                    else
+                    {
+                        user = new User(
+                            phone: formattedPhone,
+                            passwordHash: newHash,
+                            fullName: salon.Name,
+                            role: "salon",
+                            email: salon.Email
+                        );
+                        user.UpdateStatus("Verified");
+                        dbContext.Users.Add(user);
+                    }
+                }
+
+                salon.ResetFailedLoginAttempts();
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(new { message = "Salon password updated successfully." });
             }
-
-            var newHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword.Trim());
-            var pDigits = System.Text.RegularExpressions.Regex.Replace(salon.PhoneNumber ?? "", @"\D", "");
-            var oDigits = System.Text.RegularExpressions.Regex.Replace(salon.OwnerPhoneNumber ?? "", @"\D", "");
-            var cleanLocal = pDigits.StartsWith("374") && pDigits.Length > 3 ? pDigits.Substring(3) : pDigits;
-
-            var users = await dbContext.Users.ToListAsync(ct);
-            var user = users.FirstOrDefault(u => {
-                var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
-                var uLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
-                return (cleanLocal.Length >= 4 && (uLocal.EndsWith(cleanLocal) || cleanLocal.EndsWith(uLocal)));
-            });
-
-            if (user != null)
+            catch (Exception ex)
             {
-                user.UpdatePasswordHash(newHash);
-                user.ResetFailedLoginAttempts();
+                Console.WriteLine($"Error changing salon password: {ex}");
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
+                    ", ct);
+                    await dbContext.SaveChangesAsync(ct);
+                    return Results.Ok(new { message = "Salon password updated successfully." });
+                }
+                catch (Exception innerEx)
+                {
+                    Console.WriteLine($"Auto-migration failed: {innerEx}");
+                    return Results.Problem(detail: $"Error updating password: {ex.Message}", statusCode: 500);
+                }
             }
-            else
-            {
-                var phoneFormatted = cleanLocal.Length > 0 ? "+374" + cleanLocal.TrimStart('0') : salon.PhoneNumber;
-                user = new User(
-                    phone: phoneFormatted,
-                    passwordHash: newHash,
-                    fullName: salon.Name,
-                    role: "salon",
-                    email: salon.Email
-                );
-                user.UpdateStatus("Verified");
-                dbContext.Users.Add(user);
-            }
-
-            salon.ResetFailedLoginAttempts();
-            await dbContext.SaveChangesAsync(ct);
-            return Results.Ok(new { message = "Salon password updated successfully." });
         }
 
         adminGroup.MapPost("/salons/{id:guid}/password", async (Guid id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) => await ChangeSalonPasswordHandler(id, dto, dbContext, ct));
@@ -1194,51 +1253,88 @@ public static class AdminEndpoints
 
         adminGroup.MapPost("/specialists/{id:guid}/password", async (Guid id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await dbContext.Specialists.FirstOrDefaultAsync(sp => sp.Id == id, ct);
-            if (specialist == null) return Results.NotFound(new { message = "Specialist not found." });
-
-            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 6)
+            try
             {
-                return Results.BadRequest(new { message = "Password must be at least 6 characters long." });
+                var specialist = await dbContext.Specialists.FirstOrDefaultAsync(sp => sp.Id == id, ct);
+                if (specialist == null) return Results.NotFound(new { message = "Specialist not found." });
+
+                if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 6)
+                {
+                    return Results.BadRequest(new { message = "Password must be at least 6 characters long." });
+                }
+
+                var newHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword.Trim());
+
+                var rawPhone = specialist.Phone;
+                var cleanDigits = System.Text.RegularExpressions.Regex.Replace(rawPhone ?? "", @"\D", "");
+                var phoneFormatted = cleanDigits.StartsWith("374") ? "+" + cleanDigits : "+374" + cleanDigits.TrimStart('0');
+                var userEmail = specialist.Email?.Trim().ToLowerInvariant();
+
+                var users = await dbContext.Users.ToListAsync(ct);
+                var user = users.FirstOrDefault(u =>
+                {
+                    var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                    if (cleanDigits.Length >= 8 && uDigits.Length >= 8 && uDigits.EndsWith(cleanDigits.Substring(cleanDigits.Length - 8))) return true;
+                    if (!string.IsNullOrEmpty(userEmail) && !string.IsNullOrEmpty(u.Email) && u.Email.ToLowerInvariant() == userEmail) return true;
+                    return false;
+                });
+
+                if (user != null)
+                {
+                    user.UpdatePasswordHash(newHash);
+                    user.UpdateRole("specialist");
+                    user.ResetFailedLoginAttempts();
+                }
+                else
+                {
+                    var existingByPhone = users.FirstOrDefault(u => {
+                        var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                        return uDigits == cleanDigits || u.Phone == phoneFormatted;
+                    });
+
+                    if (existingByPhone != null)
+                    {
+                        existingByPhone.UpdatePasswordHash(newHash);
+                        existingByPhone.UpdateRole("specialist");
+                        existingByPhone.ResetFailedLoginAttempts();
+                    }
+                    else
+                    {
+                        user = new User(
+                            phone: phoneFormatted,
+                            passwordHash: newHash,
+                            fullName: specialist.Name,
+                            role: "specialist",
+                            email: userEmail
+                        );
+                        user.UpdateStatus("Verified");
+                        dbContext.Users.Add(user);
+                    }
+                }
+
+                specialist.SetActivated();
+                specialist.ResetFailedLoginAttempts();
+                await dbContext.SaveChangesAsync(ct);
+                return Results.Ok(new { message = "Specialist password updated successfully." });
             }
-
-            var newHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword.Trim());
-
-            var rawPhone = specialist.Phone;
-            var cleanDigits = System.Text.RegularExpressions.Regex.Replace(rawPhone ?? "", @"\D", "");
-            var phoneFormatted = cleanDigits.StartsWith("374") ? "+" + cleanDigits : "+374" + cleanDigits.TrimStart('0');
-            var userEmail = specialist.Email?.Trim().ToLowerInvariant();
-
-            var users = await dbContext.Users.ToListAsync(ct);
-            var user = users.FirstOrDefault(u =>
+            catch (Exception ex)
             {
-                var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
-                if (cleanDigits.Length >= 8 && uDigits.Length >= 8 && uDigits.EndsWith(cleanDigits.Substring(cleanDigits.Length - 8))) return true;
-                if (!string.IsNullOrEmpty(userEmail) && !string.IsNullOrEmpty(u.Email) && u.Email.ToLowerInvariant() == userEmail) return true;
-                return false;
-            });
-
-            if (user != null)
-            {
-                user.UpdatePasswordHash(newHash);
-                user.UpdateRole("specialist");
+                Console.WriteLine($"Error changing specialist password: {ex}");
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
+                        ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
+                    ", ct);
+                    await dbContext.SaveChangesAsync(ct);
+                    return Results.Ok(new { message = "Specialist password updated successfully." });
+                }
+                catch (Exception innerEx)
+                {
+                    Console.WriteLine($"Auto-migration failed: {innerEx}");
+                    return Results.Problem(detail: $"Error updating password: {ex.Message}", statusCode: 500);
+                }
             }
-            else
-            {
-                user = new User(
-                    phone: phoneFormatted,
-                    passwordHash: newHash,
-                    fullName: specialist.Name,
-                    role: "specialist",
-                    email: userEmail
-                );
-                user.UpdateStatus("Verified");
-                dbContext.Users.Add(user);
-            }
-
-            specialist.SetActivated();
-            await dbContext.SaveChangesAsync(ct);
-            return Results.Ok(new { message = "Specialist password updated successfully." });
         })
         .WithSummary("Change specialist password by admin");
 
