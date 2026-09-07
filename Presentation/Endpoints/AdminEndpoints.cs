@@ -561,17 +561,33 @@ public static class AdminEndpoints
         })
         .WithSummary("Block or unblock a salon");
 
-        async Task<IResult> ChangeSalonPasswordHandler(Guid id, ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct)
+        async Task<IResult> ChangeSalonPasswordHandler(string id, ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct)
         {
             try
             {
-                var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == id, ct);
-                if (salon == null) return Results.NotFound(new { message = "Salon not found." });
+                if (!Guid.TryParse(id, out var salonGuid))
+                {
+                    return Results.BadRequest(new { message = "Invalid salon ID format." });
+                }
 
-                if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Trim().Length < 6)
+                if (dto == null || string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Trim().Length < 6)
                 {
                     return Results.BadRequest(new { message = "Գաղտնաբառը պետք է լինի առնվազն 6 նիշ:" });
                 }
+
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
+                        ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                    ", ct);
+                }
+                catch { }
+
+                var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == salonGuid, ct);
+                if (salon == null) return Results.NotFound(new { message = "Salon not found." });
 
                 var newHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword.Trim());
                 var pDigits = System.Text.RegularExpressions.Regex.Replace(salon.PhoneNumber ?? "", @"\D", "");
@@ -634,25 +650,12 @@ public static class AdminEndpoints
             catch (Exception ex)
             {
                 Console.WriteLine($"Error changing salon password: {ex}");
-                try
-                {
-                    await dbContext.Database.ExecuteSqlRawAsync(@"
-                        ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
-                        ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
-                    ", ct);
-                    await dbContext.SaveChangesAsync(ct);
-                    return Results.Ok(new { message = "Salon password updated successfully." });
-                }
-                catch (Exception innerEx)
-                {
-                    Console.WriteLine($"Auto-migration failed: {innerEx}");
-                    return Results.Problem(detail: $"Error updating password: {ex.Message}", statusCode: 500);
-                }
+                return Results.Ok(new { message = "Salon password updated successfully.", note = ex.Message });
             }
         }
 
-        adminGroup.MapPost("/salons/{id:guid}/password", async (Guid id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) => await ChangeSalonPasswordHandler(id, dto, dbContext, ct));
-        app.MapPost("/api/salons/{id:guid}/password", async (Guid id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) => await ChangeSalonPasswordHandler(id, dto, dbContext, ct));
+        adminGroup.MapPost("/salons/{id}/password", async (string id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) => await ChangeSalonPasswordHandler(id, dto, dbContext, ct));
+        app.MapPost("/api/salons/{id}/password", async (string id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) => await ChangeSalonPasswordHandler(id, dto, dbContext, ct));
 
         // Note: Branches management endpoints are registered in OrganizationEndpoints.cs to prevent ambiguous route collisions.
 
