@@ -13,6 +13,10 @@ public record BlockToggleDto(
     bool IsBlocked
 );
 
+public record UnblockPhoneDto(
+    string Phone
+);
+
 public record UpdateUserDto(
     string FullName,
     string Phone,

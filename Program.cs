@@ -154,6 +154,7 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""OwnerPhoneNumber"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""TaxId"" text;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsActivated"" boolean DEFAULT false;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsApproved"" boolean DEFAULT false;
                 ALTER TABLE ""Salons"" ADD COLUMN IF NOT EXISTS ""IsActive"" boolean DEFAULT true;
@@ -183,6 +184,7 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""ServicesJson"" text DEFAULT '[]';
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""WorkplacesJson"" text DEFAULT '[]';
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
                 ALTER TABLE ""Specialists"" ADD COLUMN IF NOT EXISTS ""IsActivated"" boolean DEFAULT true;
                 UPDATE ""Specialists"" SET ""IsActivated"" = true WHERE ""IsActivated"" IS FALSE OR ""IsActivated"" IS NULL;
                 UPDATE ""Specialists"" SET ""SalonId"" = 'cbdc997b-0753-4b9c-8243-dc85475bf7b5' WHERE (""SalonName"" LIKE '%Արևիկ%' OR ""SalonName"" LIKE '%Arevik%') AND (""SalonId"" IS NULL OR ""SalonId"" != 'cbdc997b-0753-4b9c-8243-dc85475bf7b5');
@@ -190,6 +192,7 @@ using (var scope = app.Services.CreateScope())
 
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""Phone"" text;
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsBlocked"" boolean DEFAULT false;
+                ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""FailedLoginAttempts"" integer DEFAULT 0;
                 ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""IsOnboardingCompleted"" boolean DEFAULT false;
 
                 ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""ServiceId"" text;

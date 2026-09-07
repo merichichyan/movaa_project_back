@@ -103,9 +103,19 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Սխալ հեռախոսահամար կամ գաղտնաբառ։");
         }
 
-        if (user.IsBlocked)
+        var cleanDigits = System.Text.RegularExpressions.Regex.Replace(phoneInput, @"\D", "");
+        var localDigits = cleanDigits.StartsWith("374") && cleanDigits.Length > 3 ? cleanDigits.Substring(3) : cleanDigits;
+
+        var salons = await _dbContext.Salons.ToListAsync(ct);
+        var matchedSalon = salons.FirstOrDefault(s => {
+            var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
+            var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
+            return (localDigits.Length >= 4 && (pDigits.EndsWith(localDigits) || oDigits.EndsWith(localDigits)));
+        });
+
+        if (user.IsBlocked || user.FailedLoginAttempts >= 5 || (matchedSalon != null && matchedSalon.IsBlocked))
         {
-            throw new InvalidOperationException("Ձեր հաշիվը արգելափակված է։ Խնդրում ենք կապ հաստատել ադմինիստրատորի հետ։");
+            throw new InvalidOperationException("Ձեր հաշիվը արգելափակված է։ Խնդրում ենք կապ հաստատել ադմինիստրատորի հետ՝ +374 91 11 11 11");
         }
 
         var isPasswordValid = false;
@@ -139,8 +149,24 @@ public class AuthService : IAuthService
 
         if (!isPasswordValid)
         {
-            throw new UnauthorizedAccessException("Սխալ հեռախոսահամար կամ գաղտնաբառ։");
+            user.RecordFailedLoginAttempt();
+            if (matchedSalon != null) matchedSalon.RecordFailedLoginAttempt();
+            await _dbContext.SaveChangesAsync(ct);
+
+            var remaining = 5 - user.FailedLoginAttempts;
+            if (user.FailedLoginAttempts >= 5)
+            {
+                throw new InvalidOperationException("Դուք 5 անգամ սխալ եք հավաքել գաղտնաբառը։ Խնդրում ենք կապվել ադմինիստրատորի հետ՝ մուտքը վերականգնելու համար։");
+            }
+            else
+            {
+                throw new UnauthorizedAccessException($"Սխալ գաղտնաբառ կամ հեռախոսահամար։ Մնաց {remaining} փորձ");
+            }
         }
+
+        user.ResetFailedLoginAttempts();
+        if (matchedSalon != null) matchedSalon.ResetFailedLoginAttempts();
+        await _dbContext.SaveChangesAsync(ct);
 
         var token = _tokenGenerator.GenerateToken(user);
 

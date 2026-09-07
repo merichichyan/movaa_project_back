@@ -45,6 +45,7 @@ public class Salon
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; private set; }
     public bool IsBlocked { get; private set; } = false;
+    public int FailedLoginAttempts { get; private set; } = 0;
 
     // Ignored properties (Not in DB table)
     [NotMapped]
@@ -195,9 +196,27 @@ public class Salon
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void RecordFailedLoginAttempt()
+    {
+        FailedLoginAttempts++;
+        if (FailedLoginAttempts >= 5) IsBlocked = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ResetFailedLoginAttempts()
+    {
+        FailedLoginAttempts = 0;
+        IsBlocked = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void SetBlocked(bool isBlocked)
     {
         IsBlocked = isBlocked;
+        if (!isBlocked)
+        {
+            FailedLoginAttempts = 0;
+        }
         UpdatedAt = DateTime.UtcNow;
     }
 

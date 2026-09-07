@@ -14,6 +14,7 @@ public class User
     public string? AvatarUrl { get; private set; }
     public string Status { get; private set; } = "Pending";
     public bool IsBlocked { get; private set; }
+    public int FailedLoginAttempts { get; private set; }
     public bool IsOnboardingCompleted { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -79,9 +80,32 @@ public class User
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void RecordFailedLoginAttempt()
+    {
+        FailedLoginAttempts++;
+        if (FailedLoginAttempts >= 5)
+        {
+            IsBlocked = true;
+            Status = "Blocked";
+        }
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ResetFailedLoginAttempts()
+    {
+        FailedLoginAttempts = 0;
+        IsBlocked = false;
+        Status = "Active";
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void SetBlocked(bool isBlocked)
     {
         IsBlocked = isBlocked;
+        if (!isBlocked)
+        {
+            FailedLoginAttempts = 0;
+        }
         Status = isBlocked ? "Blocked" : "Active";
         UpdatedAt = DateTime.UtcNow;
     }

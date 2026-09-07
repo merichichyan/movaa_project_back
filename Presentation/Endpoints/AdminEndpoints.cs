@@ -134,10 +134,86 @@ public static class AdminEndpoints
             if (user == null) return Results.NotFound(new { message = "User not found." });
 
             user.SetBlocked(dto.IsBlocked);
+
+            var uDigits = System.Text.RegularExpressions.Regex.Replace(user.Phone ?? "", @"\D", "");
+            var cleanLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
+
+            if (cleanLocal.Length >= 4)
+            {
+                var salons = await dbContext.Salons.ToListAsync(ct);
+                foreach (var s in salons)
+                {
+                    var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
+                    var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
+                    if (pDigits.EndsWith(cleanLocal) || oDigits.EndsWith(cleanLocal))
+                    {
+                        s.SetBlocked(dto.IsBlocked);
+                    }
+                }
+
+                var specialists = await dbContext.Specialists.ToListAsync(ct);
+                foreach (var sp in specialists)
+                {
+                    var spDigits = System.Text.RegularExpressions.Regex.Replace(sp.Phone ?? "", @"\D", "");
+                    if (spDigits.EndsWith(cleanLocal) || cleanLocal.EndsWith(spDigits))
+                    {
+                        sp.SetBlocked(dto.IsBlocked);
+                    }
+                }
+            }
+
             await dbContext.SaveChangesAsync(ct);
             return Results.Ok(new { message = dto.IsBlocked ? "User blocked successfully." : "User unblocked successfully.", isBlocked = user.IsBlocked });
         })
         .WithSummary("Block or unblock a user");
+
+        async Task<IResult> UnblockPhoneHandler(UnblockPhoneDto dto, AppDbContext dbContext, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Phone)) return Results.BadRequest(new { message = "Phone number is required." });
+            var rawDigits = System.Text.RegularExpressions.Regex.Replace(dto.Phone, @"\D", "");
+            var cleanLocal = rawDigits.StartsWith("374") && rawDigits.Length > 3 ? rawDigits.Substring(3) : rawDigits;
+
+            if (cleanLocal.Length >= 4)
+            {
+                var users = await dbContext.Users.ToListAsync(ct);
+                foreach (var u in users)
+                {
+                    var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                    if (uDigits.EndsWith(cleanLocal) || cleanLocal.EndsWith(uDigits))
+                    {
+                        u.SetBlocked(false);
+                    }
+                }
+
+                var salons = await dbContext.Salons.ToListAsync(ct);
+                foreach (var s in salons)
+                {
+                    var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
+                    var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
+                    if (pDigits.EndsWith(cleanLocal) || oDigits.EndsWith(cleanLocal))
+                    {
+                        s.SetBlocked(false);
+                    }
+                }
+
+                var specialists = await dbContext.Specialists.ToListAsync(ct);
+                foreach (var sp in specialists)
+                {
+                    var spDigits = System.Text.RegularExpressions.Regex.Replace(sp.Phone ?? "", @"\D", "");
+                    if (spDigits.EndsWith(cleanLocal) || cleanLocal.EndsWith(spDigits))
+                    {
+                        sp.SetBlocked(false);
+                    }
+                }
+
+                await dbContext.SaveChangesAsync(ct);
+            }
+
+            return Results.Ok(new { message = "Phone unblocked successfully and failed attempts reset to 0." });
+        }
+
+        adminGroup.MapPost("/unblock-phone", async ([FromBody] UnblockPhoneDto dto, AppDbContext dbContext, CancellationToken ct) => await UnblockPhoneHandler(dto, dbContext, ct));
+        app.MapPost("/api/unblock-phone", async ([FromBody] UnblockPhoneDto dto, AppDbContext dbContext, CancellationToken ct) => await UnblockPhoneHandler(dto, dbContext, ct));
 
         adminGroup.MapPut("/users/{id}", async (string id, [FromBody] UpdateUserDto dto, AppDbContext dbContext, CancellationToken ct) =>
         {
@@ -434,6 +510,34 @@ public static class AdminEndpoints
             if (salon == null) return Results.NotFound(new { message = "Salon not found." });
 
             salon.SetBlocked(dto.IsBlocked);
+
+            var pDigits = System.Text.RegularExpressions.Regex.Replace(salon.PhoneNumber ?? "", @"\D", "");
+            var oDigits = System.Text.RegularExpressions.Regex.Replace(salon.OwnerPhoneNumber ?? "", @"\D", "");
+            var cleanLocal = pDigits.StartsWith("374") && pDigits.Length > 3 ? pDigits.Substring(3) : pDigits;
+
+            if (cleanLocal.Length >= 4)
+            {
+                var users = await dbContext.Users.ToListAsync(ct);
+                foreach (var u in users)
+                {
+                    var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                    if (uDigits.EndsWith(cleanLocal) || cleanLocal.EndsWith(uDigits))
+                    {
+                        u.SetBlocked(dto.IsBlocked);
+                    }
+                }
+
+                var specialists = await dbContext.Specialists.ToListAsync(ct);
+                foreach (var sp in specialists)
+                {
+                    var spDigits = System.Text.RegularExpressions.Regex.Replace(sp.Phone ?? "", @"\D", "");
+                    if (spDigits.EndsWith(cleanLocal) || cleanLocal.EndsWith(spDigits))
+                    {
+                        sp.SetBlocked(dto.IsBlocked);
+                    }
+                }
+            }
+
             await dbContext.SaveChangesAsync(ct);
             return Results.Ok(new { message = dto.IsBlocked ? "Salon blocked successfully." : "Salon unblocked successfully.", isBlocked = salon.IsBlocked });
         })
@@ -843,6 +947,23 @@ public static class AdminEndpoints
             if (specialist == null) return Results.NotFound(new { message = "Specialist not found." });
 
             specialist.SetBlocked(dto.IsBlocked);
+
+            var spDigits = System.Text.RegularExpressions.Regex.Replace(specialist.Phone ?? "", @"\D", "");
+            var cleanLocal = spDigits.StartsWith("374") && spDigits.Length > 3 ? spDigits.Substring(3) : spDigits;
+
+            if (cleanLocal.Length >= 4)
+            {
+                var users = await dbContext.Users.ToListAsync(ct);
+                foreach (var u in users)
+                {
+                    var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                    if (uDigits.EndsWith(cleanLocal) || cleanLocal.EndsWith(uDigits))
+                    {
+                        u.SetBlocked(dto.IsBlocked);
+                    }
+                }
+            }
+
             await dbContext.SaveChangesAsync(ct);
             return Results.Ok(new { message = dto.IsBlocked ? "Specialist blocked successfully." : "Specialist unblocked successfully.", isBlocked = specialist.IsBlocked });
         })

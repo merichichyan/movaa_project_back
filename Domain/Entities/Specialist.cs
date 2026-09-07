@@ -34,6 +34,7 @@ public class Specialist
     public string ServicesJson { get; private set; } = "[]";
     public string WorkplacesJson { get; private set; } = "[]";
     public bool IsBlocked { get; private set; } = false;
+    public int FailedLoginAttempts { get; private set; } = 0;
     public bool IsActivated { get; private set; } = true;
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -186,6 +187,30 @@ public class Specialist
             Phone = primaryPhone.Trim();
         }
         AdditionalPhonesJson = !string.IsNullOrWhiteSpace(additionalPhonesJson) ? additionalPhonesJson.Trim() : "[]";
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void RecordFailedLoginAttempt()
+    {
+        FailedLoginAttempts++;
+        if (FailedLoginAttempts >= 5) IsBlocked = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ResetFailedLoginAttempts()
+    {
+        FailedLoginAttempts = 0;
+        IsBlocked = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetBlocked(bool isBlocked)
+    {
+        IsBlocked = isBlocked;
+        if (!isBlocked)
+        {
+            FailedLoginAttempts = 0;
+        }
         UpdatedAt = DateTime.UtcNow;
     }
 
