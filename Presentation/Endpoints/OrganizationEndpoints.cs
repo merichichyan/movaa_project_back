@@ -37,6 +37,91 @@ namespace movaa_project_back.Presentation.Endpoints
                 return Results.Ok(new { organization = org, branches, membershipCount = memberships.Count });
             });
 
+            // GET /api/organizations/{id}/context & /api/salons/{id}/context
+            async Task<IResult> GetSalonContextHandler(Guid id, AppDbContext dbContext, CancellationToken ct)
+            {
+                var org = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == id, ct);
+                if (org == null)
+                {
+                    return Results.NotFound(new { message = "Salon or Organization not found." });
+                }
+
+                var branches = await dbContext.Branches
+                    .Where(b => b.OrganizationId == id)
+                    .OrderByDescending(b => b.IsMain)
+                    .ThenBy(b => b.CreatedAt)
+                    .ToListAsync(ct);
+
+                var branchResponses = new List<object>();
+                foreach (var b in branches)
+                {
+                    branchResponses.Add(await MapBranchResponseAsync(b, dbContext, ct));
+                }
+
+                List<object> specialistsList = new();
+                try
+                {
+                    var branchIds = branches.Select(b => b.Id).ToList();
+                    var specBranches = await dbContext.SpecialistBranches
+                        .Where(sb => branchIds.Contains(sb.BranchId) && sb.Status == "ACTIVE")
+                        .ToListAsync(ct);
+
+                    var specIds = specBranches.Select(sb => sb.SpecialistId).Distinct().ToList();
+                    var specialists = await dbContext.Specialists
+                        .Where(s => specIds.Contains(s.Id))
+                        .ToListAsync(ct);
+
+                    foreach (var s in specialists)
+                    {
+                        var assignedBranchIds = specBranches
+                            .Where(sb => sb.SpecialistId == s.Id)
+                            .Select(sb => sb.BranchId.ToString())
+                            .ToList();
+
+                        specialistsList.Add(new
+                        {
+                            id = s.Id.ToString(),
+                            name = s.FullName,
+                            fullName = s.FullName,
+                            email = s.Email,
+                            phone = s.PhoneNumber,
+                            jobTitle = s.Specialization,
+                            category = s.Category,
+                            avatarUrl = s.AvatarUrl,
+                            status = s.Status,
+                            isActive = s.Status == "ACTIVE",
+                            branchIds = assignedBranchIds,
+                            organizationId = id.ToString()
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"GetSalonContext Specialists Error: {ex.Message}");
+                }
+
+                return Results.Ok(new
+                {
+                    salon = new
+                    {
+                        id = org.Id.ToString(),
+                        organizationId = org.Id.ToString(),
+                        name = org.Name,
+                        phone = org.Phone,
+                        email = org.Email,
+                        website = org.Website,
+                        logoUrl = org.LogoUrl,
+                        description = org.Description,
+                        status = org.Status
+                    },
+                    branches = branchResponses,
+                    specialists = specialistsList
+                });
+            }
+
+            orgGroup.MapGet("/{id:guid}/context", GetSalonContextHandler);
+            app.MapGet("/api/salons/{id:guid}/context", GetSalonContextHandler);
+
             // POST /api/organizations
             orgGroup.MapPost("/", async ([FromBody] CreateOrganizationDto dto, AppDbContext dbContext, CancellationToken ct) =>
             {
@@ -220,9 +305,13 @@ namespace movaa_project_back.Presentation.Endpoints
                 }
             });
 
-            // POST /api/organizations/{orgId}/branches & /api/salons/{orgId}/branches & /api/admin/salons/{orgId}/branches
             async Task<IResult> CreateBranchHandler(Guid orgId, [FromBody] CreateBranchDto dto, AppDbContext dbContext, CancellationToken ct)
             {
+                if (orgId == Guid.Empty)
+                {
+                    return Results.BadRequest(new { message = "Salon or Organization ID is required." });
+                }
+
                 try
                 {
                     var isMain = dto.IsMain ?? false;
@@ -282,6 +371,15 @@ namespace movaa_project_back.Presentation.Endpoints
             orgGroup.MapPost("/{orgId:guid}/branches", CreateBranchHandler);
             app.MapPost("/api/salons/{orgId:guid}/branches", CreateBranchHandler);
             app.MapPost("/api/admin/salons/{orgId:guid}/branches", CreateBranchHandler);
+            app.MapPost("/api/branches", async ([FromQuery] Guid? salonId, [FromQuery] Guid? organizationId, [FromBody] CreateBranchDto dto, AppDbContext dbContext, CancellationToken ct) =>
+            {
+                var targetId = salonId ?? organizationId;
+                if (!targetId.HasValue || targetId.Value == Guid.Empty)
+                {
+                    return Results.BadRequest(new { message = "salonId or organizationId query parameter is required." });
+                }
+                return await CreateBranchHandler(targetId.Value, dto, dbContext, ct);
+            });
 
             // PUT /api/organizations/{orgId}/branches/{branchId} & /api/salons/{orgId}/branches/{branchId}
             async Task<IResult> UpdateBranchHandler(Guid orgId, Guid branchId, [FromBody] UpdateBranchDto dto, AppDbContext dbContext, CancellationToken ct)
