@@ -96,15 +96,19 @@ public class AuthService : IAuthService
         }
 
         var pass = request.Password.Trim();
-        var user = await _userRepository.GetByPhoneAsync(phoneInput, ct);
-
-        if (user == null)
-        {
-            throw new UnauthorizedAccessException("Սխալ հեռախոսահամար կամ գաղտնաբառ։");
-        }
-
         var cleanDigits = System.Text.RegularExpressions.Regex.Replace(phoneInput, @"\D", "");
         var localDigits = cleanDigits.StartsWith("374") && cleanDigits.Length > 3 ? cleanDigits.Substring(3) : cleanDigits;
+
+        var user = await _userRepository.GetByPhoneAsync(phoneInput, ct);
+        if (user == null && localDigits.Length >= 4)
+        {
+            var usersList = await _dbContext.Users.ToListAsync(ct);
+            user = usersList.FirstOrDefault(u => {
+                var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                var uLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
+                return uLocal.EndsWith(localDigits) || localDigits.EndsWith(uLocal);
+            });
+        }
 
         var salons = await _dbContext.Salons.ToListAsync(ct);
         var matchedSalon = salons.FirstOrDefault(s => {
@@ -113,7 +117,13 @@ public class AuthService : IAuthService
             return (localDigits.Length >= 4 && (pDigits.EndsWith(localDigits) || oDigits.EndsWith(localDigits)));
         });
 
-        if (user.IsBlocked || user.FailedLoginAttempts >= 5 || (matchedSalon != null && matchedSalon.IsBlocked))
+        if (user == null && matchedSalon == null)
+        {
+            throw new UnauthorizedAccessException("Սխալ հեռախոսահամար կամ գաղտնաբառ։");
+        }
+
+        if ((user != null && (user.IsBlocked || user.FailedLoginAttempts >= 5)) || 
+            (matchedSalon != null && (matchedSalon.IsBlocked || matchedSalon.FailedLoginAttempts >= 5)))
         {
             throw new InvalidOperationException("Ձեր հաշիվը արգելափակված է։ Խնդրում ենք կապ հաստատել ադմինիստրատորի հետ՝ +374 91 11 11 11");
         }
@@ -149,12 +159,13 @@ public class AuthService : IAuthService
 
         if (!isPasswordValid)
         {
-            user.RecordFailedLoginAttempt();
+            if (user != null) user.RecordFailedLoginAttempt();
             if (matchedSalon != null) matchedSalon.RecordFailedLoginAttempt();
             await _dbContext.SaveChangesAsync(ct);
 
-            var remaining = 5 - user.FailedLoginAttempts;
-            if (user.FailedLoginAttempts >= 5)
+            var attempts = user?.FailedLoginAttempts ?? matchedSalon?.FailedLoginAttempts ?? 1;
+            var remaining = 5 - attempts;
+            if (attempts >= 5)
             {
                 throw new InvalidOperationException("Դուք 5 անգամ սխալ եք հավաքել գաղտնաբառը։ Խնդրում ենք կապվել ադմինիստրատորի հետ՝ մուտքը վերականգնելու համար։");
             }
@@ -164,7 +175,7 @@ public class AuthService : IAuthService
             }
         }
 
-        user.ResetFailedLoginAttempts();
+        if (user != null) user.ResetFailedLoginAttempts();
         if (matchedSalon != null) matchedSalon.ResetFailedLoginAttempts();
         await _dbContext.SaveChangesAsync(ct);
 
