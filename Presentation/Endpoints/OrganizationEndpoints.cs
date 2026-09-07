@@ -81,15 +81,15 @@ namespace movaa_project_back.Presentation.Endpoints
                         specialistsList.Add(new
                         {
                             id = s.Id.ToString(),
-                            name = s.FullName,
-                            fullName = s.FullName,
+                            name = s.Name,
+                            fullName = s.Name,
                             email = s.Email,
-                            phone = s.PhoneNumber,
-                            jobTitle = s.Specialization,
+                            phone = s.Phone,
+                            jobTitle = s.JobTitle ?? s.Category,
                             category = s.Category,
                             avatarUrl = s.AvatarUrl,
-                            status = s.Status,
-                            isActive = s.Status == "ACTIVE",
+                            status = s.IsBlocked ? "BLOCKED" : "ACTIVE",
+                            isActive = !s.IsBlocked,
                             branchIds = assignedBranchIds,
                             organizationId = id.ToString()
                         });

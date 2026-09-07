@@ -173,14 +173,16 @@ public class AuthService : IAuthService
         Guid? userSalonId = null;
         if (user.Role.Equals("salon", StringComparison.OrdinalIgnoreCase) || user.Role.Equals("specialist", StringComparison.OrdinalIgnoreCase))
         {
-            var cleanPhone = System.Text.RegularExpressions.Regex.Replace(user.Phone ?? "", @"\D", "");
-            var salons = await _dbContext.Salons.ToListAsync(ct);
-            var matchedSalon = salons.FirstOrDefault(s => {
-                var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
-                var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
-                return (cleanPhone.Length >= 4 && (pDigits.EndsWith(cleanPhone) || cleanPhone.EndsWith(pDigits) || oDigits.EndsWith(cleanPhone) || cleanPhone.EndsWith(oDigits)))
-                       || (!string.IsNullOrWhiteSpace(s.Name) && s.Name.Equals(user.FullName, StringComparison.OrdinalIgnoreCase));
-            });
+            if (matchedSalon == null)
+            {
+                var cleanPhone = System.Text.RegularExpressions.Regex.Replace(user.Phone ?? "", @"\D", "");
+                matchedSalon = salons.FirstOrDefault(s => {
+                    var pDigits = System.Text.RegularExpressions.Regex.Replace(s.PhoneNumber ?? "", @"\D", "");
+                    var oDigits = System.Text.RegularExpressions.Regex.Replace(s.OwnerPhoneNumber ?? "", @"\D", "");
+                    return (cleanPhone.Length >= 4 && (pDigits.EndsWith(cleanPhone) || cleanPhone.EndsWith(pDigits) || oDigits.EndsWith(cleanPhone) || cleanPhone.EndsWith(oDigits)))
+                           || (!string.IsNullOrWhiteSpace(s.Name) && s.Name.Equals(user.FullName, StringComparison.OrdinalIgnoreCase));
+                });
+            }
             if (matchedSalon != null) userSalonId = matchedSalon.Id;
         }
 
