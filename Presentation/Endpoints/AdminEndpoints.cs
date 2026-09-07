@@ -543,6 +543,55 @@ public static class AdminEndpoints
         })
         .WithSummary("Block or unblock a salon");
 
+        async Task<IResult> ChangeSalonPasswordHandler(Guid id, ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct)
+        {
+            var salon = await dbContext.Salons.FirstOrDefaultAsync(s => s.Id == id, ct);
+            if (salon == null) return Results.NotFound(new { message = "Salon not found." });
+
+            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Trim().Length < 6)
+            {
+                return Results.BadRequest(new { message = "Գաղտնաբառը պետք է լինի առնվազն 6 նիշ:" });
+            }
+
+            var newHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword.Trim());
+            var pDigits = System.Text.RegularExpressions.Regex.Replace(salon.PhoneNumber ?? "", @"\D", "");
+            var oDigits = System.Text.RegularExpressions.Regex.Replace(salon.OwnerPhoneNumber ?? "", @"\D", "");
+            var cleanLocal = pDigits.StartsWith("374") && pDigits.Length > 3 ? pDigits.Substring(3) : pDigits;
+
+            var users = await dbContext.Users.ToListAsync(ct);
+            var user = users.FirstOrDefault(u => {
+                var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
+                var uLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
+                return (cleanLocal.Length >= 4 && (uLocal.EndsWith(cleanLocal) || cleanLocal.EndsWith(uLocal)));
+            });
+
+            if (user != null)
+            {
+                user.UpdatePasswordHash(newHash);
+                user.ResetFailedLoginAttempts();
+            }
+            else
+            {
+                var phoneFormatted = cleanLocal.Length > 0 ? "+374" + cleanLocal.TrimStart('0') : salon.PhoneNumber;
+                user = new User(
+                    phone: phoneFormatted,
+                    passwordHash: newHash,
+                    fullName: salon.Name,
+                    role: "salon",
+                    email: salon.Email
+                );
+                user.UpdateStatus("Verified");
+                dbContext.Users.Add(user);
+            }
+
+            salon.ResetFailedLoginAttempts();
+            await dbContext.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Salon password updated successfully." });
+        }
+
+        adminGroup.MapPost("/salons/{id:guid}/password", async (Guid id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) => await ChangeSalonPasswordHandler(id, dto, dbContext, ct));
+        app.MapPost("/api/salons/{id:guid}/password", async (Guid id, [FromBody] ChangePasswordRequestDto dto, AppDbContext dbContext, CancellationToken ct) => await ChangeSalonPasswordHandler(id, dto, dbContext, ct));
+
         // Note: Branches management endpoints are registered in OrganizationEndpoints.cs to prevent ambiguous route collisions.
 
         // ------------------ SPECIALISTS MANAGEMENT ------------------
