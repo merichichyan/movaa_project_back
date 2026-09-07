@@ -168,12 +168,6 @@ public class Specialist
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void SetBlocked(bool isBlocked)
-    {
-        IsBlocked = isBlocked;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
     public void SetActivated()
     {
         IsActivated = true;
