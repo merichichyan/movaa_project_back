@@ -580,19 +580,22 @@ public static class AdminEndpoints
                 var cleanOwnerLocal = oDigits.StartsWith("374") && oDigits.Length > 3 ? oDigits.Substring(3) : oDigits;
 
                 var users = await dbContext.Users.ToListAsync(ct);
-                var user = users.FirstOrDefault(u => {
+                var matchingUsers = users.Where(u => {
                     var uDigits = System.Text.RegularExpressions.Regex.Replace(u.Phone ?? "", @"\D", "");
                     var uLocal = uDigits.StartsWith("374") && uDigits.Length > 3 ? uDigits.Substring(3) : uDigits;
                     if (cleanLocal.Length >= 4 && (uLocal.EndsWith(cleanLocal) || cleanLocal.EndsWith(uLocal))) return true;
                     if (cleanOwnerLocal.Length >= 4 && (uLocal.EndsWith(cleanOwnerLocal) || cleanOwnerLocal.EndsWith(uLocal))) return true;
                     if (!string.IsNullOrWhiteSpace(salon.Email) && !string.IsNullOrWhiteSpace(u.Email) && u.Email.Equals(salon.Email, StringComparison.OrdinalIgnoreCase)) return true;
                     return false;
-                });
+                }).ToList();
 
-                if (user != null)
+                if (matchingUsers.Count > 0)
                 {
-                    user.UpdatePasswordHash(newHash);
-                    user.ResetFailedLoginAttempts();
+                    foreach (var u in matchingUsers)
+                    {
+                        u.UpdatePasswordHash(newHash);
+                        u.ResetFailedLoginAttempts();
+                    }
                 }
                 else
                 {
@@ -612,7 +615,7 @@ public static class AdminEndpoints
                     }
                     else
                     {
-                        user = new User(
+                        var user = new User(
                             phone: formattedPhone,
                             passwordHash: newHash,
                             fullName: salon.Name,
