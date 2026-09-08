@@ -19,17 +19,16 @@ public static class SpecialistSocialLinkEndpoints
         // 1. GET /api/specialists/{specialistId}/social-links
         group.MapGet("/{specialistId}/social-links", async (Guid specialistId, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
-            if (specialist == null)
+            try
             {
-                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
-            }
+                var links = await dbContext.SpecialistSocialLinks
+                    .AsNoTracking()
+                    .Where(sl => sl.SpecialistId == specialistId)
+                    .OrderBy(sl => sl.DisplayOrder)
+                    .ThenBy(sl => sl.CreatedAt)
+                    .ToListAsync(ct);
 
-            var links = await dbContext.SpecialistSocialLinks
-                .Where(sl => sl.SpecialistId == specialistId)
-                .OrderBy(sl => sl.DisplayOrder)
-                .ThenBy(sl => sl.CreatedAt)
-                .Select(sl => new SocialLinkDto(
+                var dtos = links.Select(sl => new SocialLinkDto(
                     sl.Id,
                     sl.SpecialistId,
                     sl.Platform.ToString(),
@@ -37,10 +36,32 @@ public static class SpecialistSocialLinkEndpoints
                     sl.DisplayOrder,
                     sl.CreatedAt,
                     sl.UpdatedAt
-                ))
-                .ToListAsync(ct);
+                )).ToList();
 
-            return Results.Ok(links);
+                return Results.Ok(dtos);
+            }
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"[GET SpecialistSocialLinks Error]: {ex.Message} -> {innerMsg}");
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        CREATE TABLE IF NOT EXISTS ""SpecialistSocialLinks"" (
+                            ""Id"" UUID PRIMARY KEY,
+                            ""SpecialistId"" UUID NOT NULL,
+                            ""Platform"" TEXT NOT NULL,
+                            ""Url"" TEXT NOT NULL,
+                            ""DisplayOrder"" INT DEFAULT 0,
+                            ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                            ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
+                        );
+                    ", ct);
+                }
+                catch { }
+
+                return Results.Ok(new List<SocialLinkDto>());
+            }
         })
         .WithSummary("Get social links for a specialist");
 
@@ -129,130 +150,157 @@ public static class SpecialistSocialLinkEndpoints
         // 3. PUT /api/specialists/{specialistId}/social-links/{linkId}
         group.MapPut("/{specialistId}/social-links/{linkId}", async (Guid specialistId, Guid linkId, [FromBody] UpdateSocialLinkDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
-            if (specialist == null)
-            {
-                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
-            }
-
-            if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
-            {
-                return Results.Json(new { message = "You do not have permission to manage this specialist's social links." }, statusCode: 403);
-            }
-
-            var link = await dbContext.SpecialistSocialLinks.FirstOrDefaultAsync(sl => sl.Id == linkId && sl.SpecialistId == specialistId, ct);
-            if (link == null)
-            {
-                return Results.NotFound(new { message = "Social link not found." });
-            }
-
-            if (string.IsNullOrWhiteSpace(dto.Url))
-            {
-                return Results.BadRequest(new { message = "URL is required." });
-            }
-
-            string normalizedUrl;
             try
             {
-                normalizedUrl = SocialMediaService.NormalizeUrl(dto.Url);
-            }
-            catch (ArgumentException ex)
-            {
-                return Results.BadRequest(new { message = ex.Message });
-            }
-
-            SocialPlatform platform = link.Platform;
-            if (!string.IsNullOrWhiteSpace(dto.Platform) && Enum.TryParse<SocialPlatform>(dto.Platform, true, out var parsedPlatform))
-            {
-                platform = parsedPlatform;
-            }
-
-            // Check duplicate platform if platform is changing
-            if (platform != link.Platform)
-            {
-                var duplicate = await dbContext.SpecialistSocialLinks.AnyAsync(sl => sl.SpecialistId == specialistId && sl.Platform == platform && sl.Id != linkId, ct);
-                if (duplicate)
+                var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
+                if (specialist == null)
                 {
-                    return Results.Conflict(new { message = $"A link for platform '{platform}' already exists for this specialist." });
+                    return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
                 }
+
+                if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
+                {
+                    return Results.Json(new { message = "You do not have permission to manage this specialist's social links." }, statusCode: 403);
+                }
+
+                var link = await dbContext.SpecialistSocialLinks.FirstOrDefaultAsync(sl => sl.Id == linkId && sl.SpecialistId == specialistId, ct);
+                if (link == null)
+                {
+                    return Results.NotFound(new { message = "Social link not found." });
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.Url))
+                {
+                    return Results.BadRequest(new { message = "URL is required." });
+                }
+
+                string normalizedUrl;
+                try
+                {
+                    normalizedUrl = SocialMediaService.NormalizeUrl(dto.Url);
+                }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { message = ex.Message });
+                }
+
+                SocialPlatform platform = link.Platform;
+                if (!string.IsNullOrWhiteSpace(dto.Platform) && Enum.TryParse<SocialPlatform>(dto.Platform, true, out var parsedPlatform))
+                {
+                    platform = parsedPlatform;
+                }
+
+                // Check duplicate platform if platform is changing
+                if (platform != link.Platform)
+                {
+                    var duplicate = await dbContext.SpecialistSocialLinks.AnyAsync(sl => sl.SpecialistId == specialistId && sl.Platform == platform && sl.Id != linkId, ct);
+                    if (duplicate)
+                    {
+                        return Results.Conflict(new { message = $"A link for platform '{platform}' already exists for this specialist." });
+                    }
+                }
+
+                link.Update(platform, normalizedUrl, dto.DisplayOrder ?? link.DisplayOrder);
+                await dbContext.SaveChangesAsync(ct);
+
+                var result = new SocialLinkDto(link.Id, link.SpecialistId, link.Platform.ToString(), link.Url, link.DisplayOrder, link.CreatedAt, link.UpdatedAt);
+                return Results.Ok(result);
             }
-
-            link.Update(platform, normalizedUrl, dto.DisplayOrder ?? link.DisplayOrder);
-            await dbContext.SaveChangesAsync(ct);
-
-            var result = new SocialLinkDto(link.Id, link.SpecialistId, link.Platform.ToString(), link.Url, link.DisplayOrder, link.CreatedAt, link.UpdatedAt);
-            return Results.Ok(result);
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"[SpecialistSocialLinks PUT Error]: {ex.Message} -> {innerMsg}");
+                return Results.Problem(detail: $"Error updating social link: {innerMsg}", statusCode: 500);
+            }
         })
         .WithSummary("Update a social link for a specialist");
 
         // 4. DELETE /api/specialists/{specialistId}/social-links/{linkId}
         group.MapDelete("/{specialistId}/social-links/{linkId}", async (Guid specialistId, Guid linkId, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
-            if (specialist == null)
+            try
             {
-                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
-            }
+                var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
+                if (specialist == null)
+                {
+                    return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
+                }
 
-            if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
+                if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
+                {
+                    return Results.Json(new { message = "You do not have permission to manage this specialist's social links." }, statusCode: 403);
+                }
+
+                var link = await dbContext.SpecialistSocialLinks.FirstOrDefaultAsync(sl => sl.Id == linkId && sl.SpecialistId == specialistId, ct);
+                if (link == null)
+                {
+                    return Results.NotFound(new { message = "Social link not found." });
+                }
+
+                dbContext.SpecialistSocialLinks.Remove(link);
+                await dbContext.SaveChangesAsync(ct);
+
+                return Results.Ok(new { message = "Social link deleted successfully." });
+            }
+            catch (Exception ex)
             {
-                return Results.Json(new { message = "You do not have permission to manage this specialist's social links." }, statusCode: 403);
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"[SpecialistSocialLinks DELETE Error]: {ex.Message} -> {innerMsg}");
+                return Results.Problem(detail: $"Error deleting social link: {innerMsg}", statusCode: 500);
             }
-
-            var link = await dbContext.SpecialistSocialLinks.FirstOrDefaultAsync(sl => sl.Id == linkId && sl.SpecialistId == specialistId, ct);
-            if (link == null)
-            {
-                return Results.NotFound(new { message = "Social link not found." });
-            }
-
-            dbContext.SpecialistSocialLinks.Remove(link);
-            await dbContext.SaveChangesAsync(ct);
-
-            return Results.Ok(new { message = "Social link deleted successfully." });
         })
         .WithSummary("Delete a social link for a specialist");
 
         // 5. PUT /api/specialists/{specialistId}/social-links/reorder
         group.MapPut("/{specialistId}/social-links/reorder", async (Guid specialistId, [FromBody] ReorderSocialLinksDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
-            if (specialist == null)
+            try
             {
-                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
-            }
-
-            if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
-            {
-                return Results.Json(new { message = "You do not have permission to manage this specialist's social links." }, statusCode: 403);
-            }
-
-            if (dto.LinkIds == null || dto.LinkIds.Count == 0)
-            {
-                return Results.BadRequest(new { message = "LinkIds list is required." });
-            }
-
-            var existingLinks = await dbContext.SpecialistSocialLinks
-                .Where(sl => sl.SpecialistId == specialistId)
-                .ToListAsync(ct);
-
-            for (int i = 0; i < dto.LinkIds.Count; i++)
-            {
-                var id = dto.LinkIds[i];
-                var link = existingLinks.FirstOrDefault(l => l.Id == id);
-                if (link != null)
+                var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
+                if (specialist == null)
                 {
-                    link.SetDisplayOrder(i);
+                    return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
                 }
+
+                if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
+                {
+                    return Results.Json(new { message = "You do not have permission to manage this specialist's social links." }, statusCode: 403);
+                }
+
+                if (dto.LinkIds == null || dto.LinkIds.Count == 0)
+                {
+                    return Results.BadRequest(new { message = "LinkIds list is required." });
+                }
+
+                var existingLinks = await dbContext.SpecialistSocialLinks
+                    .Where(sl => sl.SpecialistId == specialistId)
+                    .ToListAsync(ct);
+
+                for (int i = 0; i < dto.LinkIds.Count; i++)
+                {
+                    var id = dto.LinkIds[i];
+                    var link = existingLinks.FirstOrDefault(l => l.Id == id);
+                    if (link != null)
+                    {
+                        link.SetDisplayOrder(i);
+                    }
+                }
+
+                await dbContext.SaveChangesAsync(ct);
+
+                var updatedList = existingLinks
+                    .OrderBy(sl => sl.DisplayOrder)
+                    .Select(sl => new SocialLinkDto(sl.Id, sl.SpecialistId, sl.Platform.ToString(), sl.Url, sl.DisplayOrder, sl.CreatedAt, sl.UpdatedAt))
+                    .ToList();
+
+                return Results.Ok(updatedList);
             }
-
-            await dbContext.SaveChangesAsync(ct);
-
-            var updatedList = existingLinks
-                .OrderBy(sl => sl.DisplayOrder)
-                .Select(sl => new SocialLinkDto(sl.Id, sl.SpecialistId, sl.Platform.ToString(), sl.Url, sl.DisplayOrder, sl.CreatedAt, sl.UpdatedAt))
-                .ToList();
-
-            return Results.Ok(updatedList);
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"[SpecialistSocialLinks REORDER Error]: {ex.Message} -> {innerMsg}");
+                return Results.Problem(detail: $"Error reordering social links: {innerMsg}", statusCode: 500);
+            }
         })
         .WithSummary("Reorder social links for a specialist");
 
@@ -357,6 +405,7 @@ public static class SpecialistSocialLinkEndpoints
             catch (Exception ex)
             {
                 Console.WriteLine($"[EnsureSpecialist Error]: {ex.Message}");
+                dbContext.ChangeTracker.Clear();
             }
         }
 

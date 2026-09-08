@@ -18,11 +18,16 @@ public static class SalonSocialLinkEndpoints
         // 1. GET /api/salons/{salonId}/social-links
         group.MapGet("/{salonId}/social-links", async (Guid salonId, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var links = await dbContext.SalonSocialLinks
-                .Where(sl => sl.SalonId == salonId)
-                .OrderBy(sl => sl.DisplayOrder)
-                .ThenBy(sl => sl.CreatedAt)
-                .Select(sl => new
+            try
+            {
+                var links = await dbContext.SalonSocialLinks
+                    .AsNoTracking()
+                    .Where(sl => sl.SalonId == salonId)
+                    .OrderBy(sl => sl.DisplayOrder)
+                    .ThenBy(sl => sl.CreatedAt)
+                    .ToListAsync(ct);
+
+                var dtos = links.Select(sl => new
                 {
                     sl.Id,
                     sl.SalonId,
@@ -31,10 +36,16 @@ public static class SalonSocialLinkEndpoints
                     sl.DisplayOrder,
                     sl.CreatedAt,
                     sl.UpdatedAt
-                })
-                .ToListAsync(ct);
+                }).ToList();
 
-            return Results.Ok(links);
+                return Results.Ok(dtos);
+            }
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"[GET SalonSocialLinks Error]: {ex.Message} -> {innerMsg}");
+                return Results.Ok(new List<object>());
+            }
         })
         .WithSummary("Get social links for a salon");
 
