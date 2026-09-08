@@ -47,58 +47,82 @@ public static class SpecialistSocialLinkEndpoints
         // 2. POST /api/specialists/{specialistId}/social-links
         group.MapPost("/{specialistId}/social-links", async (Guid specialistId, [FromBody] CreateSocialLinkDto dto, ClaimsPrincipal principal, AppDbContext dbContext, CancellationToken ct) =>
         {
-            var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
-            if (specialist == null)
-            {
-                return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
-            }
-
-            if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
-            {
-                return Results.Json(new { message = "You do not have permission to manage this specialist's social links." }, statusCode: 403);
-            }
-
-            if (string.IsNullOrWhiteSpace(dto.Url))
-            {
-                return Results.BadRequest(new { message = "URL is required." });
-            }
-
-            string normalizedUrl;
             try
             {
-                normalizedUrl = SocialMediaService.NormalizeUrl(dto.Url);
+                var specialist = await EnsureSpecialist(specialistId, dbContext, ct);
+                if (specialist == null)
+                {
+                    return Results.NotFound(new { message = $"Specialist with ID {specialistId} not found." });
+                }
+
+                if (!await CanManageSpecialistSocialLinks(specialistId, principal, dbContext, ct))
+                {
+                    return Results.Json(new { message = "You do not have permission to manage this specialist's social links." }, statusCode: 403);
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.Url))
+                {
+                    return Results.BadRequest(new { message = "URL is required." });
+                }
+
+                string normalizedUrl;
+                try
+                {
+                    normalizedUrl = SocialMediaService.NormalizeUrl(dto.Url);
+                }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { message = ex.Message });
+                }
+
+                SocialPlatform platform;
+                if (!string.IsNullOrWhiteSpace(dto.Platform) && Enum.TryParse<SocialPlatform>(dto.Platform, true, out var parsedPlatform))
+                {
+                    platform = parsedPlatform;
+                }
+                else
+                {
+                    platform = SocialMediaService.DetectPlatform(normalizedUrl);
+                }
+
+                var existingCount = await dbContext.SpecialistSocialLinks.CountAsync(sl => sl.SpecialistId == specialistId, ct);
+                var displayOrder = dto.DisplayOrder ?? existingCount;
+
+                // Check duplicate platform for same specialist
+                var duplicate = await dbContext.SpecialistSocialLinks.AnyAsync(sl => sl.SpecialistId == specialistId && sl.Platform == platform, ct);
+                if (duplicate)
+                {
+                    return Results.Conflict(new { message = $"A link for platform '{platform}' already exists for this specialist." });
+                }
+
+                var link = new SpecialistSocialLink(specialistId, platform, normalizedUrl, displayOrder);
+                dbContext.SpecialistSocialLinks.Add(link);
+                await dbContext.SaveChangesAsync(ct);
+
+                var result = new SocialLinkDto(link.Id, link.SpecialistId, link.Platform.ToString(), link.Url, link.DisplayOrder, link.CreatedAt, link.UpdatedAt);
+                return Results.Created($"/api/specialists/{specialistId}/social-links/{link.Id}", result);
             }
-            catch (ArgumentException ex)
+            catch (Exception ex)
             {
-                return Results.BadRequest(new { message = ex.Message });
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"[SpecialistSocialLinks POST Error]: {ex.Message} -> {innerMsg}");
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        CREATE TABLE IF NOT EXISTS ""SpecialistSocialLinks"" (
+                            ""Id"" UUID PRIMARY KEY,
+                            ""SpecialistId"" UUID NOT NULL,
+                            ""Platform"" TEXT NOT NULL,
+                            ""Url"" TEXT NOT NULL,
+                            ""DisplayOrder"" INT DEFAULT 0,
+                            ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                            ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
+                        );
+                    ", ct);
+                }
+                catch { }
+                return Results.Problem(detail: $"Error saving social link: {innerMsg}", statusCode: 500);
             }
-
-            SocialPlatform platform;
-            if (!string.IsNullOrWhiteSpace(dto.Platform) && Enum.TryParse<SocialPlatform>(dto.Platform, true, out var parsedPlatform))
-            {
-                platform = parsedPlatform;
-            }
-            else
-            {
-                platform = SocialMediaService.DetectPlatform(normalizedUrl);
-            }
-
-            var existingCount = await dbContext.SpecialistSocialLinks.CountAsync(sl => sl.SpecialistId == specialistId, ct);
-            var displayOrder = dto.DisplayOrder ?? existingCount;
-
-            // Check duplicate platform for same specialist
-            var duplicate = await dbContext.SpecialistSocialLinks.AnyAsync(sl => sl.SpecialistId == specialistId && sl.Platform == platform, ct);
-            if (duplicate)
-            {
-                return Results.Conflict(new { message = $"A link for platform '{platform}' already exists for this specialist." });
-            }
-
-            var link = new SpecialistSocialLink(specialistId, platform, normalizedUrl, displayOrder);
-            dbContext.SpecialistSocialLinks.Add(link);
-            await dbContext.SaveChangesAsync(ct);
-
-            var result = new SocialLinkDto(link.Id, link.SpecialistId, link.Platform.ToString(), link.Url, link.DisplayOrder, link.CreatedAt, link.UpdatedAt);
-            return Results.Created($"/api/specialists/{specialistId}/social-links/{link.Id}", result);
         })
         .WithSummary("Create a social link for a specialist");
 
