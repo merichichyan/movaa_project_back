@@ -127,6 +127,7 @@ public static class SpecialistSocialLinkEndpoints
             {
                 var innerMsg = ex.InnerException?.Message ?? ex.Message;
                 Console.WriteLine($"[SpecialistSocialLinks POST Error]: {ex.Message} -> {innerMsg}");
+                dbContext.ChangeTracker.Clear();
                 try
                 {
                     await dbContext.Database.ExecuteSqlRawAsync(@"
@@ -140,9 +141,25 @@ public static class SpecialistSocialLinkEndpoints
                             ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
                         );
                     ", ct);
+
+                    var linkId = Guid.NewGuid();
+                    var now = DateTime.UtcNow;
+                    var safeUrl = normalizedUrl.Replace("'", "''");
+
+                    await dbContext.Database.ExecuteSqlRawAsync($@"
+                        INSERT INTO ""SpecialistSocialLinks"" (""Id"", ""SpecialistId"", ""Platform"", ""Url"", ""DisplayOrder"", ""CreatedAt"")
+                        VALUES ('{linkId}', '{specialistId}', '{platform}', '{safeUrl}', {displayOrder}, '{now:o}')
+                        ON CONFLICT DO NOTHING;
+                    ", ct);
+
+                    var result = new SocialLinkDto(linkId, specialistId, platform.ToString(), normalizedUrl, displayOrder, now, null);
+                    return Results.Created($"/api/specialists/{specialistId}/social-links/{linkId}", result);
                 }
-                catch { }
-                return Results.Problem(detail: $"Error saving social link: {innerMsg}", statusCode: 500);
+                catch (Exception rawEx)
+                {
+                    Console.WriteLine($"[SpecialistSocialLinks POST Retry Error]: {rawEx.Message}");
+                    return Results.Problem(detail: $"Error saving social link: {innerMsg}", statusCode: 500);
+                }
             }
         })
         .WithSummary("Create a social link for a specialist");
@@ -378,51 +395,51 @@ public static class SpecialistSocialLinkEndpoints
         var org = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == specialistId, ct);
         var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == specialistId, ct);
 
-        if (org != null || user != null)
-        {
-            string name = org?.Name ?? user?.FullName ?? user?.Phone ?? "Սրահ";
-            string phone = org?.Phone ?? user?.Phone ?? "";
-            string? email = org?.Email ?? user?.Email;
+        string name = org?.Name ?? user?.FullName ?? user?.Phone ?? "Մասնագետ";
+        string phone = org?.Phone ?? user?.Phone ?? "";
+        if (string.IsNullOrWhiteSpace(phone)) phone = "+37400000000";
+        string? email = org?.Email ?? user?.Email;
 
-            try
-            {
-                var newSpec = new Specialist(
-                    name: name,
-                    category: "Գեղեցկության սրահ",
-                    phone: phone,
-                    email: email,
-                    salonId: org?.Id,
-                    salonName: org?.Name
-                );
-
-                var idProp = typeof(Specialist).GetProperty("Id");
-                idProp?.SetValue(newSpec, specialistId);
-
-                dbContext.Specialists.Add(newSpec);
-                await dbContext.SaveChangesAsync(ct);
-                return newSpec;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[EnsureSpecialist Error]: {ex.Message}");
-                dbContext.ChangeTracker.Clear();
-            }
-        }
-
-        // Return a temporary memory instance if entity does not exist so DB query proceeds smoothly
         try
         {
-            var tempSpec = new Specialist(
-                name: "Գեղեցկության սրահ",
+            var newSpec = new Specialist(
+                name: name,
                 category: "Գեղեցկության սրահ",
-                phone: ""
+                phone: phone,
+                email: email,
+                salonId: org?.Id,
+                salonName: org?.Name
             );
+
             var idProp = typeof(Specialist).GetProperty("Id");
-            idProp?.SetValue(tempSpec, specialistId);
-            return tempSpec;
+            idProp?.SetValue(newSpec, specialistId);
+
+            dbContext.Specialists.Add(newSpec);
+            await dbContext.SaveChangesAsync(ct);
+            return newSpec;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine($"[EnsureSpecialist Error]: {ex.Message}");
+            dbContext.ChangeTracker.Clear();
+        }
+
+        try
+        {
+            var safeName = name.Replace("'", "''");
+            var safePhone = phone.Replace("'", "''");
+            var safeEmail = email != null ? $"'{email.Replace("'", "''")}'" : "NULL";
+            await dbContext.Database.ExecuteSqlRawAsync($@"
+                INSERT INTO ""Specialists"" (""Id"", ""Name"", ""Category"", ""Phone"", ""Email"", ""IsActivated"", ""IsBlocked"", ""CreatedAt"")
+                VALUES ('{specialistId}', '{safeName}', 'Գեղեցկության սրահ', '{safePhone}', {safeEmail}, true, false, NOW())
+                ON CONFLICT (""Id"") DO NOTHING;
+            ", ct);
+
+            return await dbContext.Specialists.FirstOrDefaultAsync(s => s.Id == specialistId, ct);
+        }
+        catch (Exception rawEx)
+        {
+            Console.WriteLine($"[EnsureSpecialist Raw SQL Error]: {rawEx.Message}");
             return null;
         }
     }

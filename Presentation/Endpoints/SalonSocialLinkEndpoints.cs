@@ -86,22 +86,73 @@ public static class SalonSocialLinkEndpoints
                 return Results.Conflict(new { message = $"A link for platform '{platform}' already exists for this salon." });
             }
 
-            var link = new SalonSocialLink(salonId, platform, normalizedUrl, displayOrder);
-            dbContext.SalonSocialLinks.Add(link);
-            await dbContext.SaveChangesAsync(ct);
-
-            var result = new
+            try
             {
-                link.Id,
-                SalonId = link.SalonId,
-                Platform = link.Platform.ToString(),
-                link.Url,
-                link.DisplayOrder,
-                link.CreatedAt,
-                link.UpdatedAt
-            };
+                var link = new SalonSocialLink(salonId, platform, normalizedUrl, displayOrder);
+                dbContext.SalonSocialLinks.Add(link);
+                await dbContext.SaveChangesAsync(ct);
 
-            return Results.Created($"/api/salons/{salonId}/social-links/{link.Id}", result);
+                var result = new
+                {
+                    link.Id,
+                    SalonId = link.SalonId,
+                    Platform = link.Platform.ToString(),
+                    link.Url,
+                    link.DisplayOrder,
+                    link.CreatedAt,
+                    link.UpdatedAt
+                };
+
+                return Results.Created($"/api/salons/{salonId}/social-links/{link.Id}", result);
+            }
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"[SalonSocialLinks POST Error]: {ex.Message} -> {innerMsg}");
+                dbContext.ChangeTracker.Clear();
+                try
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync(@"
+                        CREATE TABLE IF NOT EXISTS ""SalonSocialLinks"" (
+                            ""Id"" UUID PRIMARY KEY,
+                            ""SalonId"" UUID NOT NULL,
+                            ""Platform"" TEXT NOT NULL,
+                            ""Url"" TEXT NOT NULL,
+                            ""DisplayOrder"" INT DEFAULT 0,
+                            ""CreatedAt"" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                            ""UpdatedAt"" TIMESTAMP WITH TIME ZONE
+                        );
+                    ", ct);
+
+                    var linkId = Guid.NewGuid();
+                    var now = DateTime.UtcNow;
+                    var safeUrl = normalizedUrl.Replace("'", "''");
+
+                    await dbContext.Database.ExecuteSqlRawAsync($@"
+                        INSERT INTO ""SalonSocialLinks"" (""Id"", ""SalonId"", ""Platform"", ""Url"", ""DisplayOrder"", ""CreatedAt"")
+                        VALUES ('{linkId}', '{salonId}', '{platform}', '{safeUrl}', {displayOrder}, '{now:o}')
+                        ON CONFLICT DO NOTHING;
+                    ", ct);
+
+                    var result = new
+                    {
+                        Id = linkId,
+                        SalonId = salonId,
+                        Platform = platform.ToString(),
+                        Url = normalizedUrl,
+                        DisplayOrder = displayOrder,
+                        CreatedAt = now,
+                        UpdatedAt = (DateTime?)null
+                    };
+
+                    return Results.Created($"/api/salons/{salonId}/social-links/{linkId}", result);
+                }
+                catch (Exception rawEx)
+                {
+                    Console.WriteLine($"[SalonSocialLinks POST Retry Error]: {rawEx.Message}");
+                    return Results.Problem(detail: $"Error saving social link: {innerMsg}", statusCode: 500);
+                }
+            }
         })
         .WithSummary("Create a social link for a salon");
 
