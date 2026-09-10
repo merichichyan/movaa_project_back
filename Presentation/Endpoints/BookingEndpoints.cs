@@ -44,6 +44,29 @@ namespace movaa_project_back.Presentation.Endpoints
                     await context.Database.ExecuteSqlRawAsync(@"
                         ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""UserName"" text;
                         ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""UserPhone"" text;
+                        CREATE TABLE IF NOT EXISTS ""SalonResources"" (
+                            ""Id"" uuid PRIMARY KEY,
+                            ""SalonId"" uuid NOT NULL,
+                            ""Name"" text NOT NULL,
+                            ""NameHy"" text,
+                            ""NameEn"" text,
+                            ""NameRu"" text,
+                            ""Quantity"" integer NOT NULL DEFAULT 0,
+                            ""Description"" text,
+                            ""DescriptionHy"" text,
+                            ""DescriptionEn"" text,
+                            ""DescriptionRu"" text,
+                            ""IsActive"" boolean NOT NULL DEFAULT true,
+                            ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                            ""UpdatedAt"" timestamp with time zone
+                        );
+                        ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
+                        ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
+                        ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""NameRu"" text;
+                        ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""Description"" text;
+                        ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""DescriptionHy"" text;
+                        ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""DescriptionEn"" text;
+                        ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""DescriptionRu"" text;
                     ", ct);
                 }
                 catch { }

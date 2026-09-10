@@ -209,6 +209,37 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""ResourceId"" uuid;
                 ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""RequiredQuantity"" integer DEFAULT 1;
 
+                CREATE TABLE IF NOT EXISTS ""SalonResources"" (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""SalonId"" uuid NOT NULL,
+                    ""Name"" text NOT NULL,
+                    ""NameHy"" text,
+                    ""NameEn"" text,
+                    ""NameRu"" text,
+                    ""Quantity"" integer NOT NULL DEFAULT 0,
+                    ""Description"" text,
+                    ""DescriptionHy"" text,
+                    ""DescriptionEn"" text,
+                    ""DescriptionRu"" text,
+                    ""IsActive"" boolean NOT NULL DEFAULT true,
+                    ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                    ""UpdatedAt"" timestamp with time zone
+                );
+                ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
+                ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
+                ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""NameRu"" text;
+                ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""Description"" text;
+                ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""DescriptionHy"" text;
+                ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""DescriptionEn"" text;
+                ALTER TABLE ""SalonResources"" ADD COLUMN IF NOT EXISTS ""DescriptionRu"" text;
+
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""NameRu"" text;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""AddressHy"" text;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""AddressEn"" text;
+                ALTER TABLE ""Branches"" ADD COLUMN IF NOT EXISTS ""AddressRu"" text;
+
                 CREATE TABLE IF NOT EXISTS ""Services"" (
                     ""Id"" uuid PRIMARY KEY,
                     ""SalonId"" uuid,
