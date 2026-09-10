@@ -200,6 +200,8 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""SalonId"" uuid;
                 ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""SalonName"" text;
                 ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""IsNoShow"" boolean DEFAULT false;
+                ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""UserName"" text;
+                ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""UserPhone"" text;
 
                 ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""ServiceId"" text;
                 ALTER TABLE ""ServiceResources"" ADD COLUMN IF NOT EXISTS ""ServiceName"" text;
@@ -446,7 +448,9 @@ using (var scope = app.Services.CreateScope())
                     ""IsNoShow"" BOOLEAN DEFAULT FALSE,
                     ""Status"" TEXT DEFAULT 'Confirmed',
                     ""SalonId"" UUID,
-                    ""SalonName"" TEXT
+                    ""SalonName"" TEXT,
+                    ""UserName"" TEXT,
+                    ""UserPhone"" TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS ""SalonResources"" (

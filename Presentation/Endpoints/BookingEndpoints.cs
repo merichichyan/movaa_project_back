@@ -39,6 +39,15 @@ namespace movaa_project_back.Presentation.Endpoints
 
                 var effectiveServiceId = !string.IsNullOrWhiteSpace(request.ServiceId) ? request.ServiceId.Trim() : request.ServiceName.Trim();
 
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""UserName"" text;
+                        ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""UserPhone"" text;
+                    ", ct);
+                }
+                catch { }
+
                 // 1. Calculate Time Interval Overlap Range
                 var reqDate = request.BookingDate.Date;
                 var startTimeStr = request.TimeSlot?.Split('-')[0].Trim();
