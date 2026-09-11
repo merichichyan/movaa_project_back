@@ -168,6 +168,12 @@ public class Specialist
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void UpdateServicesJson(string servicesJson)
+    {
+        ServicesJson = !string.IsNullOrWhiteSpace(servicesJson) ? servicesJson.Trim() : "[]";
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void SetActivated()
     {
         IsActivated = true;

@@ -82,13 +82,15 @@ namespace movaa_project_back.Presentation.Endpoints
                     return itemId == sIdStr || (itemName != null && itemName.Trim().ToLower() == sNameLower);
                 });
 
+                bool modified = false;
+
                 if (isTarget)
                 {
                     var serviceDict = new Dictionary<string, object>
                     {
                         ["id"] = sIdStr,
                         ["name"] = service.Name,
-                        ["nameHy"] = service.NameHy,
+                        ["nameHy"] = service.NameHy ?? service.Name,
                         ["price"] = service.Price,
                         ["duration"] = service.DurationMinutes,
                         ["category"] = service.Category
@@ -102,40 +104,21 @@ namespace movaa_project_back.Presentation.Endpoints
                     {
                         list.Add(serviceDict);
                     }
+                    modified = true;
                 }
                 else
                 {
                     if (existingIdx >= 0)
                     {
                         list.RemoveAt(existingIdx);
+                        modified = true;
                     }
                 }
 
-                sp.Update(
-                    name: sp.Name,
-                    category: sp.Category,
-                    phone: sp.Phone,
-                    nameHy: sp.NameHy,
-                    nameEn: sp.NameEn,
-                    nameRu: sp.NameRu,
-                    jobTitle: sp.JobTitle,
-                    jobTitleHy: sp.JobTitleHy,
-                    jobTitleEn: sp.JobTitleEn,
-                    jobTitleRu: sp.JobTitleRu,
-                    email: sp.Email,
-                    salonId: sp.SalonId,
-                    salonName: sp.SalonName,
-                    avatarUrl: sp.AvatarUrl,
-                    bio: sp.Bio,
-                    bioHy: sp.BioHy,
-                    bioEn: sp.BioEn,
-                    bioRu: sp.BioRu,
-                    experienceYears: sp.ExperienceYears,
-                    workingHours: sp.WorkingHours,
-                    commissionRate: sp.CommissionRate,
-                    servicesJson: JsonSerializer.Serialize(list),
-                    workplacesJson: sp.WorkplacesJson
-                );
+                if (modified)
+                {
+                    sp.UpdateServicesJson(JsonSerializer.Serialize(list));
+                }
             }
         }
 
@@ -317,8 +300,9 @@ namespace movaa_project_back.Presentation.Endpoints
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"CreateService Error: {ex.Message}");
-                    return Results.BadRequest(new { message = ex.Message });
+                    var msg = ex.InnerException?.Message ?? ex.Message;
+                    Console.WriteLine($"CreateService Error: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                    return Results.BadRequest(new { message = msg });
                 }
             }
 
@@ -353,8 +337,9 @@ namespace movaa_project_back.Presentation.Endpoints
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"UpdateService Error: {ex.Message}");
-                    return Results.BadRequest(new { message = ex.Message });
+                    var msg = ex.InnerException?.Message ?? ex.Message;
+                    Console.WriteLine($"UpdateService Error: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                    return Results.BadRequest(new { message = msg });
                 }
             }
 
@@ -379,8 +364,9 @@ namespace movaa_project_back.Presentation.Endpoints
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"DeleteService Error: {ex.Message}");
-                    return Results.BadRequest(new { message = ex.Message });
+                    var msg = ex.InnerException?.Message ?? ex.Message;
+                    Console.WriteLine($"DeleteService Error: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                    return Results.BadRequest(new { message = msg });
                 }
             }
 
