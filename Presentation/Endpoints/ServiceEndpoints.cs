@@ -181,6 +181,50 @@ namespace movaa_project_back.Presentation.Endpoints
             }
         }
 
+        private static bool _migrationAttempted = false;
+
+        private static async Task EnsureServiceColumnsExistAsync(AppDbContext dbContext, CancellationToken ct)
+        {
+            if (_migrationAttempted) return;
+            _migrationAttempted = true;
+            try
+            {
+                await dbContext.Database.ExecuteSqlRawAsync(@"
+                    CREATE TABLE IF NOT EXISTS ""Services"" (
+                        ""Id"" uuid PRIMARY KEY,
+                        ""SalonId"" uuid,
+                        ""Name"" text NOT NULL,
+                        ""NameHy"" text,
+                        ""NameEn"" text,
+                        ""NameRu"" text,
+                        ""Category"" text NOT NULL DEFAULT 'General',
+                        ""Price"" double precision NOT NULL DEFAULT 0,
+                        ""DurationMinutes"" integer NOT NULL DEFAULT 30,
+                        ""Description"" text,
+                        ""SpecialistIdsJson"" text NOT NULL DEFAULT '[]',
+                        ""IsActive"" boolean NOT NULL DEFAULT true,
+                        ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
+                        ""UpdatedAt"" timestamp with time zone
+                    );
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Category"" text DEFAULT 'General';
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameRu"" text;
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""SalonId"" uuid;
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""DurationMinutes"" integer DEFAULT 30;
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Description"" text;
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""SpecialistIdsJson"" text DEFAULT '[]';
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""IsActive"" boolean DEFAULT true;
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone DEFAULT NOW();
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone;
+                ", ct);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"EnsureServiceColumnsExist notice: {ex.Message}");
+            }
+        }
+
         public static IEndpointRouteBuilder MapServiceEndpoints(this IEndpointRouteBuilder app)
         {
             var apiGroup = app.MapGroup("/api/services").WithTags("Services");
@@ -221,6 +265,7 @@ namespace movaa_project_back.Presentation.Endpoints
             // GET /api/services & /api/admin/services
             async Task<IResult> GetServicesHandler(Guid? salonId, Guid? specialistId, string? category, bool? activeOnly, AppDbContext dbContext, CancellationToken ct)
             {
+                await EnsureServiceColumnsExistAsync(dbContext, ct);
                 try
                 {
                     var query = dbContext.Services.AsQueryable();
@@ -272,6 +317,7 @@ namespace movaa_project_back.Presentation.Endpoints
             // POST /api/services & /api/admin/services
             async Task<IResult> CreateServiceHandler([FromBody] CreateServiceDto dto, AppDbContext dbContext, CancellationToken ct)
             {
+                await EnsureServiceColumnsExistAsync(dbContext, ct);
                 if (string.IsNullOrWhiteSpace(dto.Name))
                 {
                     return Results.BadRequest(new { message = "Ծառայության անվանումը պարտադիր է (Service name is required)." });

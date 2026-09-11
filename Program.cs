@@ -256,6 +256,17 @@ using (var scope = app.Services.CreateScope())
                     ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
                     ""UpdatedAt"" timestamp with time zone
                 );
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Category"" text DEFAULT 'General';
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameRu"" text;
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""SalonId"" uuid;
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""DurationMinutes"" integer DEFAULT 30;
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Description"" text;
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""SpecialistIdsJson"" text DEFAULT '[]';
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""IsActive"" boolean DEFAULT true;
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone DEFAULT NOW();
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""UpdatedAt"" timestamp with time zone;
 
                 CREATE TABLE IF NOT EXISTS ""Offers"" (
                     ""Id"" uuid PRIMARY KEY,
