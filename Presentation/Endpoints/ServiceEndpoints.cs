@@ -183,9 +183,9 @@ namespace movaa_project_back.Presentation.Endpoints
 
         private static bool _migrationAttempted = false;
 
-        private static async Task EnsureServiceColumnsExistAsync(AppDbContext dbContext, CancellationToken ct)
+        private static async Task EnsureServiceColumnsExistAsync(AppDbContext dbContext, CancellationToken ct, bool force = false)
         {
-            if (_migrationAttempted) return;
+            if (_migrationAttempted && !force) return;
             _migrationAttempted = true;
             try
             {
@@ -193,7 +193,7 @@ namespace movaa_project_back.Presentation.Endpoints
                     CREATE TABLE IF NOT EXISTS ""Services"" (
                         ""Id"" uuid PRIMARY KEY,
                         ""SalonId"" uuid,
-                        ""Name"" text NOT NULL,
+                        ""Name"" text NOT NULL DEFAULT '',
                         ""NameHy"" text,
                         ""NameEn"" text,
                         ""NameRu"" text,
@@ -206,6 +206,8 @@ namespace movaa_project_back.Presentation.Endpoints
                         ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
                         ""UpdatedAt"" timestamp with time zone
                     );
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Name"" text DEFAULT '';
+                    ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Price"" double precision DEFAULT 0;
                     ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Category"" text DEFAULT 'General';
                     ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
                     ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
@@ -262,52 +264,67 @@ namespace movaa_project_back.Presentation.Endpoints
                 };
             }
 
+            static async Task<List<object>> FetchServicesListAsync(Guid? salonId, Guid? specialistId, string? category, bool? activeOnly, AppDbContext dbContext, CancellationToken ct)
+            {
+                var query = dbContext.Services.AsQueryable();
+                if (activeOnly ?? false)
+                {
+                    query = query.Where(s => s.IsActive);
+                }
+
+                if (salonId.HasValue && salonId.Value != Guid.Empty)
+                {
+                    query = query.Where(s => s.SalonId == salonId.Value || s.SalonId == null);
+                }
+
+                if (!string.IsNullOrWhiteSpace(category))
+                {
+                    var catLower = category.Trim().ToLower();
+                    query = query.Where(s => s.Category.ToLower() == catLower);
+                }
+
+                var list = await query.OrderBy(s => s.Category).ThenBy(s => s.Name).ToListAsync(ct);
+
+                if (specialistId.HasValue && specialistId.Value != Guid.Empty)
+                {
+                    var spIdStr = specialistId.Value.ToString();
+                    list = list.Where(s =>
+                    {
+                        try
+                        {
+                            var ids = JsonSerializer.Deserialize<List<string>>(s.SpecialistIdsJson ?? "[]");
+                            return ids != null && ids.Contains(spIdStr);
+                        }
+                        catch { return false; }
+                    }).ToList();
+                }
+
+                return list.Select(s => MapServiceResponse(s, dbContext)).ToList();
+            }
+
             // GET /api/services & /api/admin/services
             async Task<IResult> GetServicesHandler(Guid? salonId, Guid? specialistId, string? category, bool? activeOnly, AppDbContext dbContext, CancellationToken ct)
             {
                 await EnsureServiceColumnsExistAsync(dbContext, ct);
                 try
                 {
-                    var query = dbContext.Services.AsQueryable();
-                    if (activeOnly ?? false)
-                    {
-                        query = query.Where(s => s.IsActive);
-                    }
-
-                    if (salonId.HasValue && salonId.Value != Guid.Empty)
-                    {
-                        query = query.Where(s => s.SalonId == salonId.Value || s.SalonId == null);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(category))
-                    {
-                        var catLower = category.Trim().ToLower();
-                        query = query.Where(s => s.Category.ToLower() == catLower);
-                    }
-
-                    var list = await query.OrderBy(s => s.Category).ThenBy(s => s.Name).ToListAsync(ct);
-
-                    if (specialistId.HasValue && specialistId.Value != Guid.Empty)
-                    {
-                        var spIdStr = specialistId.Value.ToString();
-                        list = list.Where(s =>
-                        {
-                            try
-                            {
-                                var ids = JsonSerializer.Deserialize<List<string>>(s.SpecialistIdsJson ?? "[]");
-                                return ids != null && ids.Contains(spIdStr);
-                            }
-                            catch { return false; }
-                        }).ToList();
-                    }
-
-                    var res = list.Select(s => MapServiceResponse(s, dbContext)).ToList();
+                    var res = await FetchServicesListAsync(salonId, specialistId, category, activeOnly, dbContext, ct);
                     return Results.Ok(res);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"GetServices Error: {ex.Message}");
-                    return Results.Ok(new List<object>());
+                    Console.WriteLine($"GetServices Primary Error: {ex.Message}. Retrying after force migration...");
+                    await EnsureServiceColumnsExistAsync(dbContext, ct, force: true);
+                    try
+                    {
+                        var res = await FetchServicesListAsync(salonId, specialistId, category, activeOnly, dbContext, ct);
+                        return Results.Ok(res);
+                    }
+                    catch (Exception ex2)
+                    {
+                        Console.WriteLine($"GetServices Retry Error: {ex2.Message}");
+                        return Results.Ok(new List<object>());
+                    }
                 }
             }
 

@@ -243,7 +243,7 @@ using (var scope = app.Services.CreateScope())
                 CREATE TABLE IF NOT EXISTS ""Services"" (
                     ""Id"" uuid PRIMARY KEY,
                     ""SalonId"" uuid,
-                    ""Name"" text NOT NULL,
+                    ""Name"" text NOT NULL DEFAULT '',
                     ""NameHy"" text,
                     ""NameEn"" text,
                     ""NameRu"" text,
@@ -256,6 +256,8 @@ using (var scope = app.Services.CreateScope())
                     ""CreatedAt"" timestamp with time zone DEFAULT NOW(),
                     ""UpdatedAt"" timestamp with time zone
                 );
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Name"" text DEFAULT '';
+                ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Price"" double precision DEFAULT 0;
                 ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Category"" text DEFAULT 'General';
                 ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameHy"" text;
                 ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""NameEn"" text;
